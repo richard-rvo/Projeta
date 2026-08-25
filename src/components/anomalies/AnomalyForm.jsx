@@ -46,8 +46,14 @@ export default function AnomalyForm({
       onError?.(`Máximo de ${MAX_PHOTOS} fotos por anomalia`);
       return;
     }
-    const compressed = (await Promise.all(files.map((f) => compressImage(f)))).filter(Boolean);
-    set({ photos: [...form.photos, ...compressed] });
+    const compressed = await Promise.all(files.map((f) => compressImage(f)));
+    const validPhotos = compressed.filter(Boolean);
+    if (validPhotos.length !== files.length) {
+      onError?.('Não foi possível processar uma ou mais imagens. Use JPG, PNG ou WebP.');
+    }
+    if (validPhotos.length > 0) {
+      setForm((current) => ({ ...current, photos: [...current.photos, ...validPhotos] }));
+    }
     e.target.value = '';
   };
 

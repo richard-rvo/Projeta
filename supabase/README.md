@@ -34,3 +34,8 @@ is_workspace_member` ou uma requisição `GET /rest/v1/workspaces` com `403`,
 execute [`fix_workspace_rls_permissions.sql`](fix_workspace_rls_permissions.sql)
 no SQL Editor. A causa é a ausência de `EXECUTE` para o papel `authenticated`
 nas funções usadas pelas policies RLS.
+
+As imagens das anomalias ficam no campo `anomalies.photos` como JSONB, depois
+de comprimidas no navegador. Se uma instalação antiga não possuir essa coluna,
+execute a migração `20260825010000_ensure_anomaly_photos_column.sql` no SQL
+Editor ou aplique as migrações pendentes.

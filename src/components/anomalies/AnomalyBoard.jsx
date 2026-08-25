@@ -266,9 +266,13 @@ export default function AnomalyBoard({
         tasks={tasks}
         onError={onError}
         onSave={async (data) => {
-          setFormOpen(false);
-          const saved = data.id ? await onUpdate(data) : await onCreate(data);
-          if (saved?.id) setSelectedId(saved.id);
+          try {
+            const saved = data.id ? await onUpdate(data) : await onCreate(data);
+            setFormOpen(false);
+            if (saved?.id) setSelectedId(saved.id);
+          } catch (error) {
+            onError?.(error?.message || 'Não foi possível salvar a anomalia e suas imagens.');
+          }
         }}
       />
 
