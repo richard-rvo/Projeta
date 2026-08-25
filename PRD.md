@@ -1,223 +1,293 @@
-# Product Requirements Document (PRD)
-## Projeta — Sistema de Gestão de Projetos
+# Product Requirements Document
 
-> **Versão**: 3.0 · **Atualizado**: agosto de 2026
-> Histórico do redesign e estado por fase: [`docs/REDESIGN.md`](docs/REDESIGN.md)
+## Projeta — sistema de gestão de projetos
 
----
+**Versão:** 4.0
+**Atualizado:** agosto de 2026
+**Produto:** Projeta
+**Domínio:** https://projeta.richardvieira.com.br
+**Logo:** [`public/logo-premium.svg`](public/logo-premium.svg)
 
-## 1. Visão geral
+## 1. Definição do produto
 
-O **Projeta** é uma aplicação web para gestão executiva de múltiplos projetos em ambientes industriais e corporativos. O objetivo é entregar o rigor de cronograma do Microsoft Project com a calma visual e a velocidade de uma ferramenta moderna.
+O **Projeta** é uma aplicação web para planejar, executar e comunicar projetos.
+Ele conecta cronograma, tarefas, calendário de trabalho, anomalias e
+indicadores executivos dentro de um workspace compartilhado.
 
-Opera **100% no navegador (local-first)**: privacidade total, resposta imediata e funcionamento sem servidor ou internet.
+Sua proposta é oferecer a precisão de um cronograma profissional sem exigir que
+a equipe abandone a velocidade da operação diária. O produto é orientado a
+projetos com dependências, turnos, feriados, mudanças de prazo e necessidade de
+acompanhamento executivo.
 
----
+O Projeta é uma SPA React hospedada na Vercel. A autenticação e os dados são
+gerenciados pelo Supabase; portanto, o acesso autenticado depende de conexão
+com o backend configurado.
 
 ## 2. Público-alvo
 
-- Gerentes de projeto e engenheiros de planejamento e controle
-- Coordenadores de equipes de campo e de escritório
-- Inspetores e técnicos que registram anomalias em campo, pelo celular
-- Diretores que precisam de visão consolidada de portfólio
+- Gerentes de projeto e planejadores.
+- Engenheiros de planejamento e controle.
+- Coordenadores de equipes de campo e de escritório.
+- Técnicos e inspetores que registram anomalias pelo celular.
+- Diretores e gestores que acompanham portfólios.
 
----
+## 3. Objetivos do produto
 
-## 3. Objetivos
+1. Criar uma fonte única para o cronograma e a operação do projeto.
+2. Representar dependências e calendários usando minutos úteis, não apenas datas corridas.
+3. Tornar o acompanhamento diário rápido no Gantt, quadro e tabela.
+4. Permitir o registro estruturado de anomalias em campo.
+5. Dar aos gestores uma leitura executiva de prazo, avanço e risco.
+6. Persistir os dados com isolamento por workspace e políticas RLS.
+7. Permitir exportar backups JSON e relatórios imprimíveis.
 
-- Planejar cronogramas com rigor real — dependências tipadas, calendário de trabalho e caminho crítico calculado, não aproximado
-- Operar o Gantt inteiramente pelo teclado, sem tocar o mouse
-- Escalar para milhares de tarefas sem degradar
-- Registrar anomalias direto do celular, com fotos
-- Gerar relatórios executivos em PDF sem dependências externas
-- Manter os dados no dispositivo do usuário
+## 4. Identidade do produto
 
----
+- **Nome:** Projeta.
+- **Assinatura:** Planejamento com clareza.
+- **Marca gráfica:** `public/logo-premium.svg`.
+- **Domínio oficial:** `projeta.richardvieira.com.br`.
+- **Tom:** preciso, calmo, operacional e confiável.
+- **Interface:** clara, responsiva, densa quando necessário e sem excesso de
+  decoração que atrapalhe o planejamento.
 
-## 4. Arquitetura de navegação
+## 5. Modelo de acesso
 
-Dois níveis, com **no máximo duas barras de chrome** entre o topo da janela e o conteúdo.
+### Usuário
 
-### Nível 0 — Trilho global (`AppRail`, 64px)
+O usuário cria uma conta ou acessa por e-mail e senha usando o Supabase Auth.
+Ao criar a conta, o sistema envia a confirmação para a URL configurada e cria
+um perfil básico por trigger do banco.
 
-Ícones sempre visíveis; expande para 232px ao passar o mouse, **sobrepondo** o conteúdo em vez de empurrá-lo. Pode ser fixado.
+### Workspace
 
-| Item | Conteúdo |
+No primeiro acesso autenticado, o sistema cria um workspace para o usuário e o
+torna proprietário. O workspace possui nome e fuso horário.
+
+### Isolamento
+
+Projetos, tarefas e anomalias carregam `workspace_id`. As tabelas possuem RLS
+e as políticas limitam leitura e escrita a membros autenticados do workspace;
+operações administrativas de workspace ficam restritas ao proprietário.
+
+Convites e membros estão previstos no schema (`workspace_members` e
+`workspace_invites`), mas o fluxo completo de convite ainda não está exposto
+na interface atual.
+
+## 6. Navegação e shell
+
+### Trilho global
+
+O `AppRail` apresenta Portfólio, Anomalias, Relatórios e Configurações, além da
+alternância de tema claro/escuro e da fixação do trilho expandido. Ele inicia
+compacto, expande ao passar o mouse e pode ser fixado.
+
+### Barra de contexto
+
+O `TopBar` apresenta o contexto atual, seleção de projeto, abas do projeto,
+busca/atalhos, estado de salvamento, exportação de backup e sessão.
+
+As visões de projeto são: Visão Geral, Gantt, Quadro, Curva S, Tarefas e
+Anomalias.
+
+## 7. Requisitos funcionais
+
+### 7.1 Portfólio
+
+O usuário deve conseguir visualizar, criar, editar e excluir projetos. A tela
+oferece cards, tabela e timeline, além de métricas de total, andamento,
+progresso médio, proximidade de prazo, atraso e anomalias abertas.
+
+Cada projeto exibe nome, descrição, status, progresso, período, saúde e
+quantidade de anomalias abertas. Os status são Planejado, Em Andamento,
+Concluído e Pausado.
+
+### 7.2 Visão geral do projeto
+
+Resume o projeto selecionado com estado do cronograma, progresso planejado e
+realizado, Curva S resumida, próximas entregas, próximos marcos, anomalias,
+período e status.
+
+### 7.3 Tarefas e Gantt
+
+Uma tarefa possui, no mínimo, nome, projeto, ordem, datas, duração derivada,
+progresso, nível hierárquico, modo de agendamento, calendário e dependências.
+
+O Gantt deve suportar:
+
+- Hierarquia e tarefas-resumo.
+- Edição inline de células.
+- Inclusão, duplicação e exclusão de tarefas.
+- Arraste da barra, redimensionamento e ajuste de progresso.
+- Datas de início e término com hora, baseline e marcos.
+- Filtros por texto, status, atraso e criticidade.
+- Agrupamento e colunas configuráveis.
+- Zoom contínuo, ajuste ao projeto e minimapa.
+- Seleção, menu de contexto, copiar/colar e atalhos de teclado.
+- Desfazer e refazer das alterações da sessão.
+
+### 7.4 Motor de cronograma
+
+O motor calcula o cronograma em minutos úteis:
+
+- Dependências FS, SS, FF e SF com lag em dias úteis.
+- Agendamento automático baseado em predecessoras.
+- Agendamento manual que preserva a posição fixada e sinaliza conflitos.
+- Restrição de início não anterior a uma data.
+- Detecção de dependência circular.
+- Forward pass e backward pass.
+- Início/término mais cedo e mais tarde.
+- Folga total e folga livre.
+- Indicação de tarefas críticas e atrasadas.
+- Rollup de progresso das tarefas-resumo.
+
+O motor usa o calendário da tarefa quando definido e, caso contrário, o
+calendário padrão do projeto.
+
+### 7.5 Calendários
+
+Cada projeto possui uma biblioteca de calendários. Um calendário contém nome,
+dias úteis, um ou mais turnos de trabalho, intervalos de cada turno e feriados.
+
+O usuário pode criar calendários a partir de presets, escolher o padrão, editar
+turnos e feriados e definir o formato de exibição da duração.
+
+### 7.6 Quadro
+
+O quadro exibe tarefas agrupadas por status. O usuário pode mover cartões entre
+colunas; ao mover para Concluída, o progresso é atualizado para 100%.
+
+### 7.7 Curva S
+
+O produto exibe a evolução acumulada planejada versus realizada, ponderada pela
+duração das tarefas. A tela permite selecionar o período, visualizar
+indicadores e exportar os pontos para CSV.
+
+O cálculo é centralizado em `src/utils/scurve.js` e reutilizado na visão geral
+e nos relatórios.
+
+### 7.8 Anomalias
+
+O usuário registra e edita uma anomalia em quatro passos:
+
+1. Identificação: título, severidade, tipo, responsável e tarefa.
+2. Detalhes: descrição, OS, equipamento, localização, disciplina, causa raiz,
+   ação corretiva e status.
+3. Fotos: até cinco imagens, comprimidas antes do salvamento.
+4. Revisão e salvamento.
+
+As anomalias podem estar abertas, em análise, resolvidas ou canceladas. A
+central global e a visão do projeto compartilham o formulário e a estrutura.
+
+### 7.9 Relatórios e backup
+
+Relatórios são preparados para papel A4 e impressão do navegador: status
+executivo ou registro de anomalias. O backup JSON inclui projetos, tarefas e
+anomalias do workspace, com data de exportação. A restauração automática ainda
+não faz parte da interface.
+
+### 7.10 Configurações
+
+O usuário pode alternar tema, ver o estado do salvamento, exportar backup,
+editar nome e status do projeto, configurar calendário e consultar informações
+sobre o Projeta.
+
+## 8. Dados e persistência
+
+### Entidades
+
+- `profiles`: perfil vinculado a `auth.users`.
+- `workspaces`: unidade de isolamento, proprietário e fuso horário.
+- `workspace_members`: membros e papéis.
+- `workspace_invites`: convites preparados para evolução.
+- `projects`: projeto, status, calendários e configurações.
+- `tasks`: tarefas, datas, progresso, dependências e planejamento.
+- `anomalies`: ocorrências, severidade, fotos e detalhes de campo.
+
+### Regras de dados
+
+- O banco é Supabase Postgres.
+- Datas de tarefa são timestamps sem fuso para preservar o horário planejado.
+- `depends_on` é JSON com id, tipo e lag.
+- `schedule_mode` é `auto` ou `manual`.
+- `calendar_id` seleciona o calendário da tarefa.
+- Calendários e metadados são armazenados em JSONB.
+- O navegador usa somente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+- Chaves de service role nunca podem ser expostas no bundle.
+
+## 9. Requisitos não funcionais
+
+### Performance
+
+- Virtualização de linhas e marcações da grade/timeline.
+- Gradientes para fundos repetitivos da timeline, evitando um elemento DOM por dia.
+- Alterações por arraste com o mínimo de re-renderizações.
+- Compressão de imagens de anomalias no cliente.
+
+### Responsividade
+
+- Navegação e módulos principais funcionam em desktop e mobile.
+- Formulário de anomalias confortável para uso em campo.
+- Gantt utilizável em telas menores com rolagem e controles adequados.
+
+### Acessibilidade
+
+- Foco visível em controles interativos.
+- Rótulo acessível para botões que exibem apenas ícones.
+- Overlays com foco, Escape e papéis ARIA adequados.
+- Contraste compatível com o tema selecionado.
+- Operação por teclado nas interações principais do Gantt.
+
+### Segurança
+
+- RLS habilitado nas tabelas de domínio.
+- Isolamento sempre baseado em `workspace_id`.
+- Nenhum segredo administrativo no frontend.
+- Autenticação e sessão delegadas ao Supabase Auth.
+
+## 10. Stack e estrutura
+
+| Camada | Tecnologia |
 |---|---|
-| **Portfólio** | Todos os projetos em Cards, Tabela ou Timeline |
-| **Anomalias** | Central global de todos os projetos |
-| **Relatórios** | Geração e impressão |
-| **Configurações** | Aparência, backup, dados |
+| UI | React 18 |
+| Build | Vite 5 |
+| Estilos | Tailwind CSS v4, tokens CSS e CSS semântico |
+| Componentes | Radix UI e componentes locais no padrão shadcn/ui |
+| Ícones | Lucide React |
+| Auth e banco | Supabase Auth, Postgres e RLS |
+| Testes | Vitest |
+| Deploy | Vercel |
 
-Também carrega os controles de tema, densidade e fixação.
+```text
+public/logo-premium.svg       Logo oficial Projeta
+src/components/               Shell, formulários, dialogs e UI
+src/context/AppContext.jsx    Estado global, auth e persistência
+src/pages/                    Telas globais e de projeto
+src/utils/                    Calendário, CPM, duração e dados
+src/views/gantt/              Grade, timeline, filtros e minimapa
+src/styles/                   Tokens, base, impressão e Gantt
+supabase/migrations/          Schema e políticas RLS
+vercel.json                   Build e fallback da SPA
+```
 
-### Nível 1 — Barra de contexto (`TopBar`, 52px)
+## 11. Critérios de publicação
 
-Uma linha só: `[← ] [Projeto ⌄] [Visão Geral · Gantt · Quadro · Curva S · Tarefas · Anomalias] [busca ⌘K] [notificações]`
+1. `npm run build` termina sem erro.
+2. A Vercel usa `npm run build` e publica `dist`.
+3. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `VITE_SITE_URL` estão configuradas.
+4. `projeta.richardvieira.com.br` está validado na Vercel.
+5. O Supabase possui Site URL e Redirect URLs do domínio.
+6. No domínio final são testados cadastro, confirmação de e-mail, login,
+   logout, criação de projeto, salvamento de tarefa e carregamento posterior.
 
-### Nível 2 — Barra da view (`ViewBar`, 44px)
+## 12. Fora do escopo atual e roadmap
 
-Ações da view ativa. **Regra de divisão:** o TopBar diz *onde você está*; a ViewBar diz *o que dá para fazer aqui*. Nenhuma das duas repete o título da outra.
-
-### Nível 3 — Inspector (drawer 380px)
-
-O **único** caminho de edição de detalhe de tarefa. A edição inline nas células cobre as colunas da grade; o Inspector cobre o resto.
-
----
-
-## 5. Funcionalidades
-
-### 5.1 Portfólio
-
-Funde o antigo Dashboard com a lista de Projetos. Faixa de métricas (projetos, em andamento, progresso médio, vencendo em 7 dias, atrasadas, anomalias abertas) e três modos:
-
-- **Cards** — saúde, progresso com marca do planejado, status, período
-- **Tabela** — comparação linha a linha
-- **Timeline** — mini-Gantt de todos os projetos lado a lado, revelando sobreposição e concentração de trabalho
-
-### 5.2 Gantt
-
-O bloco estratégico do produto. Um **único scroller** para os dois eixos: o cabeçalho gruda no topo e a planilha à esquerda, sem sincronização em JS.
-
-**Estrutura e visual**
-- Seleção atravessando planilha e timeline na mesma linha (sem realce de hover: o ponteiro cruza dezenas de linhas a caminho da barra que interessa)
-- Tarefas-resumo como colchete, colapsáveis
-- Progresso como faixa interna mais escura; rótulo sai da barra quando não cabe
-- Marcos em losango, linha e pílula "Hoje", fins de semana e feriados sombreados
-- Baseline com desvio, folga como barra fantasma
-
-**Interação**
-- Teclado completo: setas navegam, `F2`/`Enter` edita, `Tab`/`Shift+Tab` indenta, `Del` remove
-- Arrastar barras, redimensionar, arrastar o progresso pela alça. O arrasto anda em
-  **tempo útil**: nenhuma barra para em fim de semana, feriado ou fora do turno
-- Predecessora se define pela coluna **Pred.** (`2FS+3`, notação do MS Project) ou pelo
-  Inspetor. Não existe ligação por arrasto na barra — ela custava dois alvos de clique de
-  11px em cada barra e disputava o gesto de mover, que é o que se faz o tempo todo
-- Desfazer/refazer (`⌘Z` / `⇧⌘Z`) em toda edição de tarefa, válido em qualquer tela
-- Menu de contexto, copiar/colar/duplicar
-- Seleção simples e múltipla
-
-**Rigor de cronograma**
-- **Instantes, não datas**: início e término carregam hora (`13/08/26 08:00`). O término é o
-  instante em que o trabalho para, e a parte-data dele continua sendo o último dia inclusivo
-- **Biblioteca de calendários por projeto**, atribuível por tarefa — as *base calendars* do
-  MS Project. Cada calendário tem dias úteis, **jornada** (turnos, com intervalo) e feriados.
-  Uma tarefa que termina sexta 17:00 libera a sucessora segunda 08:00; uma tarefa num
-  calendário 24 Horas libera a sucessora no mesmo instante
-- **Modo de agendamento por tarefa**: *automática* segue as predecessoras; *manual* fica
-  onde o planejador fixou e não é movida — as setas continuam desenhadas e o Gantt avisa
-  quando a data fixada desrespeita a dependência, mas não corrige
-- Dependências **FS, SS, FF, SF** com defasagem em dias úteis do calendário da sucessora
-- **CPM completo**: forward pass (ES/EF), backward pass (LS/LF), folga total e folga livre —
-  tudo em minutos úteis, no calendário de cada tarefa
-- **Rollup de tarefa-resumo na regra do MS Project**: `%Concluída = Σ(Duração Real) / Σ(Duração)`,
-  com duração em tempo útil do calendário de cada filho. Marco (duração zero) não carrega peso —
-  concluí-lo não move a porcentagem do pai. A duração do resumo é o **vão** início→término, não
-  a soma dos filhos
-- Duração em minutos úteis, exibida em dias e digitável como `3d`, `4h` ou `90m`.
-  "3 dias" são 24h no calendário Padrão e 72h no 24 Horas
-- Restrição "não iniciar antes de"
-- Detecção de dependência circular
-
-**Escala**
-- Virtualização de linhas, setas e marcações — 1.000 tarefas a 60 FPS
-- Zoom contínuo, "ajustar ao projeto" e ⌘+scroll ancorado no cursor
-- Minimapa com janela arrastável
-- Filtros (texto, status, críticas, atrasadas) e agrupamento
-- Colunas redimensionáveis, persistidas por projeto
-
-### 5.3 Visão geral do projeto
-
-Faixa de métricas e grade de 12 colunas. A coluna larga mostra a **forma** do cronograma — janela de 30 dias e Curva S. A estreita mostra o que exige atenção: próximas entregas, marcos, anomalias, período.
-
-### 5.4 Quadro
-
-Uma coluna por status, com contador. Arrastar entre colunas altera o status; soltar em "Concluída" marca 100%.
-
-### 5.5 Tabela de tarefas
-
-Usa as **mesmas definições de coluna do Gantt**. Ordenação por qualquer coluna, filtros por status, seleção múltipla e ações em massa.
-
-### 5.6 Curva S
-
-Planejado vs realizado ponderado por duração. A **área entre as curvas** é tingida pelo sinal do desvio. Seletor de período e export CSV.
-
-O cálculo vive em `utils/scurve.js` e é o mesmo consumido pela Visão Geral e pelo relatório impresso.
-
-### 5.7 Anomalias
-
-Split view: lista densa à esquerda, detalhe à direita. Mesma interface na central global e na tela do projeto.
-
-Registro em 4 passos, pensado para o celular em campo: identificação, detalhes industriais (OS, equipamento, local, disciplina, causa raiz, ação corretiva), fotos e revisão. Câmera nativa, compressão automática para ~300 KB, até 5 fotos. Status: aberta → em análise → resolvida → cancelada.
-
-### 5.8 Relatórios
-
-Pré-visualização A4 real — folha branca com sombra sobre mesa recuada. Status executivo (KPIs, Curva S, cronograma, anomalias) ou registro de anomalias com fotos. Impressão via `window.print()`.
-
-### 5.9 Persistência
-
-Supabase Postgres organiza os dados por workspace, com Auth e RLS aplicados no banco.
-
-- Datas são **instantes** `'YYYY-MM-DDTHH:mm'`, local-ingênuos: string ordenável, sem fuso
-- `task.dependsOn` é uma lista de `{ id, type, lag }`
-- `task.scheduleMode` é `'auto' | 'manual'`; ausente significa automática
-- `task.calendarId` aponta um calendário da biblioteca; vazio herda o padrão do projeto
-- `project.calendars` é a biblioteca `[{ id, name, workdays, shifts, holidays }]`, com
-  `project.defaultCalendarId`
-- Migração v2→v3 converte `dependsOn` e v3→v4 converte datas e calendário. As duas
-  **preservam o original** (`dependsOnLegacy`, `datesLegacy`, `calendarLegacy`), e nenhuma data
-  anda: o dia é o mesmo, ganhando a abertura no início e o fechamento no término
-- Backup JSON exporta tudo menos fotos; a conversão de dados legados passa pelas mesmas
-  funções de migração — backup antigo não segue caminho diferente de banco antigo
-
----
-
-## 6. Requisitos não funcionais
-
-### 6.1 Stack
-
-- **Core**: React 18 (hooks, Context API)
-- **Build**: Vite 5
-- **Estilo**: **Tailwind CSS v4** com design tokens em `@theme`, mais CSS semântico para o miolo do Gantt
-- **Componentes**: **shadcn/ui** sobre primitivos Radix (Dialog, Popover, DropdownMenu, ContextMenu, Command, Select, Tooltip, Sonner)
-- **Banco**: Supabase Postgres via `@supabase/supabase-js`, com Auth e RLS por workspace
-- **Ícones**: Lucide
-
-> **Nota de arquitetura.** As versões anteriores exigiam "CSS vanilla puro, nenhum framework". A decisão foi revista: o app usa Tailwind e shadcn, **exceto** a grade e a timeline do Gantt, que ficam em CSS semântico com variáveis vindas dos mesmos tokens. Classe utilitária por célula numa grade virtualizada custa caro, e a densidade do Gantt precisa de controle direto.
-
-### 6.2 Design system
-
-Ver [`DESIGN.md`](DESIGN.md). Em resumo: superfícies neutras, cor reservada para estado de cronograma, marca como acento raro, densidade adaptativa, tipografia SF-first.
-
-### 6.3 Performance
-
-- Gantt virtualizado: **1.000 tarefas a 60 FPS** (medido)
-- Fundo da timeline desenhado com gradientes, não com um elemento por dia
-- Arrasto sem re-render: escrita imperativa durante o gesto
-- Fotos comprimidas antes de gravar
-
-### 6.4 Acessibilidade
-
-- Anel de foco visível em todo controle
-- Overlays sobre Radix: foco preso, `Escape` fecha, papéis ARIA corretos
-- `prefers-reduced-motion` respeitado
-- Gantt operável só pelo teclado
-
----
-
-## 7. Roadmap
-
-| Prioridade | Item |
-|---|---|
-| 🔴 Alta | Ordenação de colunas no Gantt (exige decidir como conviver com a ordem manual e a hierarquia) |
-| 🔴 Alta | Presets de view (exige definir o que um preset guarda) |
-| 🟡 Média | Nivelamento de recursos e detecção de sobrealocação |
-| 🟡 Média | Importação em lote de tarefas via CSV/Excel |
-| 🟡 Média | PWA com service worker para uso offline instalado |
-| 🟢 Baixa | EVM — variância de custo e prazo |
-| 🟢 Baixa | Múltiplas linhas de base por projeto |
-| 🟢 Baixa | Multi-usuário com sincronização opcional |
-
-### Entregue nas versões anteriores do roadmap
-
-Dependências FS/SS/FF/SF · Exportação para Excel · Filtros avançados no Gantt · Calendário de feriados no auto-agendamento
+- Convites de membros com fluxo completo de envio e aceite.
+- Upload de fotos para Supabase Storage.
+- Restauração de backup pela interface.
+- Importação em lote por CSV/Excel.
+- Nivelamento de recursos e sobrealocação.
+- Múltiplas linhas de base.
+- PWA e operação offline instalada.
+- Indicadores de valor agregado e custo.
+- Notificações e colaboração em tempo real.
