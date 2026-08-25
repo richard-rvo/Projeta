@@ -90,11 +90,29 @@ para os ambientes Production, Preview e Development:
 ```text
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-chave-anon-publica
+VITE_SITE_URL=https://projeta.richardvieira.com.br
 ```
 
 Use somente a chave anon pública no frontend. Nunca configure
 `SUPABASE_SERVICE_ROLE_KEY` ou outra credencial administrativa em uma variável
 `VITE_`.
+
+### Domínio personalizado
+
+Adicione `projeta.richardvieira.com.br` como domínio do projeto na Vercel.
+Como é um subdomínio, o painel da Vercel informará um registro `CNAME` para
+ser criado no provedor DNS de `richardvieira.com.br`; use exatamente o destino
+mostrado em **Settings → Domains** e aguarde a verificação do domínio e do SSL.
+
+No Supabase, em **Authentication → URL Configuration**, configure:
+
+- **Site URL:** `https://projeta.richardvieira.com.br`
+- **Redirect URLs:** `https://projeta.richardvieira.com.br/**`
+- Opcional para desenvolvimento: `http://localhost:5174/**`
+
+Depois de configurar o domínio e as variáveis, faça um novo deploy de produção
+na Vercel e teste cadastro, confirmação de e-mail, login e logout no domínio
+customizado.
 
 ---
 

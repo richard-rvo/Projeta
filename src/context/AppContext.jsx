@@ -8,6 +8,8 @@ import {
   verifyWorkspaceData,
 } from '../utils/supabaseRepository';
 
+const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+
 /* ── initial state ──────────────────────────────────────────── */
 const initialState = {
   projects: [],
@@ -632,7 +634,10 @@ export function AppProvider({ children }) {
     return supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: authRedirectUrl,
+      },
     });
   }, []);
 
