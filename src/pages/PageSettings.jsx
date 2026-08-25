@@ -70,6 +70,7 @@ export default function PageSettings() {
         {section === 'calendar' && project && (
           <ProjectCalendarSettings
             project={project}
+            tasks={state.tasks.filter((task) => task.projectId === project.id)}
             onChange={(patch) => updateProjectPatch(project.id, patch)}
             showToast={showToast}
           />

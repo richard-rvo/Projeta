@@ -7,7 +7,7 @@ import { ViewBarButton } from '../../components/shell/ViewBar';
 import { Calendar, X, Plus, Check, Copy } from 'lucide-react';
 import {
   calendarsOf, defaultCalendarOf, CALENDAR_PRESETS,
-  DURATION_DISPLAY_OPTIONS, durationDisplayOf, isValidISODate, isValidTime,
+  calendarAssignmentCount, DURATION_DISPLAY_OPTIONS, durationDisplayOf, isValidISODate, isValidTime,
 } from '../../utils/calendar';
 import { minutesPerDay } from '../../utils/worktime';
 import { formatDateLong } from '../../utils/schedule';
@@ -48,7 +48,7 @@ function newId(existing) {
   return `cal-${i}`;
 }
 
-export default function GanttCalendarMenu({ project, onChange, triggerLabel = 'Calendários' }) {
+export default function GanttCalendarMenu({ project, tasks = [], onChange, triggerLabel = 'Calendários' }) {
   const calendars = calendarsOf(project);
   const defaultId = defaultCalendarOf(project).id;
 
@@ -62,6 +62,8 @@ export default function GanttCalendarMenu({ project, onChange, triggerLabel = 'C
   }, [calendars, editingId, defaultId]);
 
   const cal = calendars.find((c) => c.id === editingId) || calendars[0];
+  const assignedTasks = calendarAssignmentCount(tasks, cal?.id);
+  const cannotRemoveCalendar = calendars.length <= 1 || cal?.id === defaultId || assignedTasks > 0;
 
   useEffect(() => {
     setShiftDrafts({});
@@ -152,7 +154,7 @@ export default function GanttCalendarMenu({ project, onChange, triggerLabel = 'C
   const removeCalendar = () => {
     /* O projeto precisa de pelo menos um, e o padrão não pode sumir
        debaixo das tarefas que o herdam. */
-    if (calendars.length <= 1 || cal.id === defaultId) return;
+    if (cannotRemoveCalendar) return;
     commit(calendars.filter((c) => c.id !== cal.id));
     setEditingId(defaultId);
   };
@@ -229,8 +231,12 @@ export default function GanttCalendarMenu({ project, onChange, triggerLabel = 'C
           <button
             type="button"
             onClick={removeCalendar}
-            disabled={calendars.length <= 1 || cal.id === defaultId}
-            title={cal.id === defaultId ? 'O padrão do projeto não pode ser excluído' : 'Excluir calendário'}
+            disabled={cannotRemoveCalendar}
+            title={cal.id === defaultId
+              ? 'O padrão do projeto não pode ser excluído'
+              : assignedTasks
+                ? `${assignedTasks} tarefa${assignedTasks === 1 ? '' : 's'} ainda usa${assignedTasks === 1 ? '' : 'm'} este calendário`
+                : 'Excluir calendário'}
             className="grid size-6 shrink-0 place-items-center rounded-[5px] text-text-3 transition-colors hover:bg-sched-late-soft hover:text-sched-late disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text-3"
           >
             <X size={12} />

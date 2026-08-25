@@ -22,9 +22,11 @@ import {
 } from '../utils/schedule';
 import { calculateTaskPlannedProgress } from '../utils/progress';
 import { stateOf, viewProgress } from '../utils/taskState';
-import { calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf } from '../utils/calendar';
 import {
-  addWorkingMinutes, workingMinutesBetween, snapForward, snapBackward, minutesPerDay,
+  calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf, rebaseTaskCalendar,
+} from '../utils/calendar';
+import {
+  addWorkingMinutes, workingMinutesBetween, snapForward, snapBackward,
 } from '../utils/worktime';
 import { formatDuration, resolveDuration } from '../utils/duration';
 import { applyForwardPass, stripComputed } from '../views/gantt/useGanttTasks';
@@ -152,21 +154,12 @@ export default function TaskInspectorDrawer() {
     await commit({ endDate: snapBackward(cal, value) }, 'Alterar término');
   }, [task, project, commit, showToast]);
 
-  /** Trocar de calendário mantém o início e a duração EM DIAS, e
-   *  recalcula o término: 3 dias num calendário 24h acabam antes de
-   *  3 dias num de 8h. */
+  /** Trocar de calendário mantém o início e a duração real em minutos
+   *  úteis, exatamente como a edição inline do Gantt. Assim uma tarefa
+   *  de 8h não vira 24h só porque passou para um calendário 24 Horas. */
   const commitCalendar = useCallback(async (calendarId) => {
     if (!task) return;
-    const from = calendarOf(project, task);
-    const to = calendarOf(project, { calendarId });
-    const days = workingMinutesBetween(from, task.startDate, task.endDate) / minutesPerDay(from);
-    const start = snapForward(to, task.startDate);
-
-    await commit({
-      calendarId: calendarId || undefined,
-      startDate: start,
-      endDate: addWorkingMinutes(to, start, days * minutesPerDay(to)),
-    }, 'Alterar calendário');
+    await commit(rebaseTaskCalendar(project, task, calendarId), 'Alterar calendário');
   }, [task, project, commit]);
 
   /* Violação e prazo vêm da MESMA análise que o Gantt usa — dois

@@ -22,7 +22,7 @@ import {
   formatDateTimeShort, clampProgress, isManual, SCHEDULE_MODES, CONSTRAINT_NONE,
 } from '../../utils/schedule';
 import {
-  calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf, workdayStart, workdayEnd,
+  calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf, rebaseTaskCalendar, workdayStart, workdayEnd,
 } from '../../utils/calendar';
 import {
   addWorkingMinutes, workingMinutesBetween, snapForward, snapBackward, minutesPerDay,
@@ -694,14 +694,7 @@ export default function GanttView() {
         /* Trocar de calendário mantém o início e a duração real em
            minutos. A jornada muda o encaixe no relógio, mas "4h"
            continua sendo 4h, independentemente do calendário escolhido. */
-        const next = calendarOf(activeProject, { calendarId: valueToCommit });
-        const start = snapForward(next, task.startDate);
-        modified = {
-          ...task,
-          calendarId: valueToCommit || undefined,
-          startDate: start,
-          endDate: addWorkingMinutes(next, start, duration),
-        };
+        modified = rebaseTaskCalendar(activeProject, task, valueToCommit);
         break;
       }
 
@@ -1434,6 +1427,7 @@ export default function GanttView() {
 
           <GanttCalendarMenu
             project={activeProject}
+            tasks={tasks}
             triggerLabel="Calendário"
             onChange={(patch) => updateProjectPatch(state.activeProjectId, patch)}
           />

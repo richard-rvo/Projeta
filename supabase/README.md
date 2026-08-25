@@ -1,6 +1,9 @@
 # Supabase
 
-The initial workspace schema lives in `migrations/20260821000000_workspace_schema.sql`.
+The workspace schema lives in `migrations/`. For installations created before
+the calendar library, apply `20260825020000_add_project_calendar_library.sql`
+as well; it creates the project calendar fields and the optional task
+assignment without discarding existing schedules.
 
 It models one owner per workspace and any number of members. Projects, tasks and anomalies carry `workspace_id` so tenant filtering and RLS checks do not depend on application joins.
 

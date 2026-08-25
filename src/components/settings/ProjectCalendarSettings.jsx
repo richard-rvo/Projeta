@@ -3,7 +3,7 @@ import { CalendarDays, Check, Copy, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   CALENDAR_PRESETS, DURATION_DISPLAY_OPTIONS, calendarsOf, defaultCalendarOf,
-  durationDisplayOf, isValidISODate, isValidTime,
+  calendarAssignmentCount, durationDisplayOf, isValidISODate, isValidTime,
 } from '../../utils/calendar';
 import { minutesPerDay } from '../../utils/worktime';
 import { formatDateLong } from '../../utils/schedule';
@@ -31,7 +31,7 @@ function uniqueName(calendars, name) {
   return `${name} ${index}`;
 }
 
-export default function ProjectCalendarSettings({ project, onChange, showToast }) {
+export default function ProjectCalendarSettings({ project, tasks = [], onChange, showToast }) {
   const calendars = calendarsOf(project);
   const defaultId = defaultCalendarOf(project).id;
   const [editingId, setEditingId] = useState(defaultId);
@@ -45,6 +45,13 @@ export default function ProjectCalendarSettings({ project, onChange, showToast }
   useEffect(() => setDrafts({}), [project?.id, editingId]);
 
   const calendar = calendars.find((item) => item.id === editingId) || calendars[0];
+  const assignedTasks = calendarAssignmentCount(tasks, calendar?.id);
+  const cannotRemoveCalendar = calendars.length <= 1 || calendar?.id === defaultId || assignedTasks > 0;
+  const removeTitle = calendar?.id === defaultId
+    ? 'O calendário padrão do projeto não pode ser excluído'
+    : assignedTasks
+      ? `${assignedTasks} tarefa${assignedTasks === 1 ? '' : 's'} ainda usa${assignedTasks === 1 ? '' : 'm'} este calendário`
+      : 'Excluir calendário';
   const commitCalendars = (nextCalendars, nextDefaultId = project?.defaultCalendarId || defaultId) =>
     onChange({ calendars: nextCalendars, defaultCalendarId: nextDefaultId });
   const patchCalendar = (changes) => onChange({ calendarChanges: { id: calendar.id, changes } });
@@ -88,7 +95,7 @@ export default function ProjectCalendarSettings({ project, onChange, showToast }
   };
 
   const removeCalendar = () => {
-    if (calendars.length <= 1 || calendar.id === defaultId) return;
+    if (cannotRemoveCalendar) return;
     commitCalendars(calendars.filter((item) => item.id !== calendar.id));
     setEditingId(defaultId);
   };
@@ -149,8 +156,13 @@ export default function ProjectCalendarSettings({ project, onChange, showToast }
       <section className="border-t border-line pt-5">
         <div className="flex items-center gap-2">
           <input value={calendar.name} onChange={(event) => patchCalendar({ name: event.target.value })} className="h-9 min-w-0 flex-1 rounded-[6px] border border-line bg-surface-0 px-3 text-body font-medium text-text-1" />
-          <Button type="button" variant="ghost" size="icon-sm" onClick={removeCalendar} disabled={calendars.length <= 1 || calendar.id === defaultId} title="Excluir calendário"><Trash2 size={15} /></Button>
+          <Button type="button" variant="ghost" size="icon-sm" onClick={removeCalendar} disabled={cannotRemoveCalendar} title={removeTitle}><Trash2 size={15} /></Button>
         </div>
+        {assignedTasks > 0 && (
+          <p className="mt-2 text-small text-text-2">
+            {assignedTasks} tarefa{assignedTasks === 1 ? '' : 's'} usa{assignedTasks === 1 ? '' : 'm'} este calendário. Reatribua-a{assignedTasks === 1 ? '' : 's'} antes de excluí-lo.
+          </p>
+        )}
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <SettingBlock title="Exibição de duração" description="Aplicada a todo o projeto, em todas as telas.">

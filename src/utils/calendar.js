@@ -146,6 +146,40 @@ export function calendarOf(project, task) {
   return resolveCalendar(project, task?.calendarId);
 }
 
+/**
+ * Quantas tarefas têm uma escolha explícita por este calendário.
+ *
+ * A ausência de `calendarId` significa herança do padrão do projeto,
+ * portanto não entra na conta. Mantemos essa referência íntegra em vez
+ * de deixar uma tarefa apontar para um calendário que já não existe.
+ */
+export function calendarAssignmentCount(tasks, calendarId) {
+  if (!calendarId || !Array.isArray(tasks)) return 0;
+  return tasks.reduce(
+    (count, task) => count + (task?.calendarId === calendarId ? 1 : 0),
+    0,
+  );
+}
+
+/**
+ * Aplica outro calendário a uma tarefa sem alterar sua duração efetiva.
+ * Centralizar esta regra evita que o inspetor e a grade interpretem a
+ * mesma troca de forma diferente.
+ */
+export function rebaseTaskCalendar(project, task, calendarId) {
+  const currentCalendar = calendarOf(project, task);
+  const nextCalendar = resolveCalendar(project, calendarId);
+  const duration = workingMinutesBetween(currentCalendar, task.startDate, task.endDate);
+  const start = snapForward(nextCalendar, task.startDate);
+
+  return {
+    ...task,
+    calendarId: calendarId || undefined,
+    startDate: start,
+    endDate: addWorkingMinutes(nextCalendar, start, duration),
+  };
+}
+
 /* ── Atalhos de dia ────────────────────────────────────────────────
    Camada fina sobre worktime, para quem raciocina em dia: o cabeçalho
    da timeline, o sombreado de não-útil e o editor de feriados. */
