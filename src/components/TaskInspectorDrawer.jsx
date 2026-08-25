@@ -23,7 +23,7 @@ import {
 import { calculateTaskPlannedProgress } from '../utils/progress';
 import { stateOf, viewProgress } from '../utils/taskState';
 import {
-  calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf, rebaseTaskCalendar,
+  calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf, durationInputUnitOf, rebaseTaskCalendar,
 } from '../utils/calendar';
 import {
   addWorkingMinutes, workingMinutesBetween, snapForward, snapBackward,
@@ -347,13 +347,18 @@ export default function TaskInspectorDrawer() {
                   type="text"
                   defaultValue={formatDuration(durationMinutes, calendar, { unit: durationUnit })}
                   disabled={task.isSummary}
-                  placeholder="3d · 4h · 90m"
-                  title="Aceita 3d, 4h ou 90m"
+                  placeholder={durationInputUnitOf(project) === 'hours' ? '48 = 48h úteis' : '3 = 3 dias úteis'}
+                  title={durationInputUnitOf(project) === 'hours'
+                    ? 'Aceita 3d, 4h ou 90m. Sem sufixo, o número é interpretado como horas úteis.'
+                    : 'Aceita 3d, 4h ou 90m. Sem sufixo, o número é interpretado como dias úteis.'}
                   onBlur={(e) => {
                     /* Duração não é armazenada: ela desloca o término.
                        A leitura é a mesma da grade — antes esta tela
                        somava dias corridos e a grade, dias úteis. */
-                    const minutes = resolveDuration(e.target.value, calendar, durationMinutes);
+                    const minutes = resolveDuration(e.target.value, calendar, durationMinutes, {
+                      unit: durationUnit,
+                      defaultUnit: durationInputUnitOf(project),
+                    });
                     if (minutes === null || minutes === durationMinutes) return;
                     commit(
                       { endDate: addWorkingMinutes(calendar, task.startDate, minutes) },

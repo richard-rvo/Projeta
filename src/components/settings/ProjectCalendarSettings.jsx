@@ -165,7 +165,12 @@ export default function ProjectCalendarSettings({ project, tasks = [], onChange,
         )}
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <SettingBlock title="Exibição de duração" description="Aplicada a todo o projeto, em todas as telas.">
+          <SettingBlock
+            title="Exibição de duração"
+            description={durationDisplayOf(project) === 'hours'
+              ? 'Aplicada a todo o projeto. Ao editar, números sem sufixo são horas úteis.'
+              : 'Aplicada a todo o projeto. Ao editar, números sem sufixo são dias úteis.'}
+          >
             <select value={durationDisplayOf(project)} onChange={(event) => setProjectDisplay(event.target.value)} className="h-9 w-full rounded-[6px] border border-line bg-surface-0 px-2 text-small text-text-1">
               {DURATION_DISPLAY_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>

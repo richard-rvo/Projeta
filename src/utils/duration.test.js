@@ -44,6 +44,11 @@ describe('parseDuration', () => {
     expect(parseDuration('3', PADRAO)).toBe(3 * 480);
   });
 
+  it('número solto vira hora quando o projeto está fixo em horas', () => {
+    expect(parseDuration('48', PADRAO, { defaultUnit: 'hours' })).toBe(48 * 60);
+    expect(parseDuration('48', H24, { unit: 'hours' })).toBe(48 * 60);
+  });
+
   it('entende a notação do MS Project', () => {
     expect(parseDuration('3d', PADRAO)).toBe(1440);
     expect(parseDuration('4h', PADRAO)).toBe(240);
@@ -87,6 +92,11 @@ describe('resolveDuration', () => {
   it('texto que muda o rótulo conta como edição', () => {
     expect(resolveDuration('5d', PADRAO, 480)).toBe(5 * 480);
     expect(resolveDuration('4h', PADRAO, 480)).toBe(240);
+  });
+
+  it('preserva a duração ao confirmar uma hora exibida sem sufixo adicional', () => {
+    expect(resolveDuration('48', PADRAO, 48 * 60, { unit: 'hours', defaultUnit: 'hours' }))
+      .toBe(48 * 60);
   });
 
   it('lixo não grava nada', () => {

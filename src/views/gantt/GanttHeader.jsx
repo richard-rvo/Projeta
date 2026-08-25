@@ -1,4 +1,5 @@
 import React from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { getDayOfWeekChar, formatDateShort } from '../../utils/schedule';
 import { MONTH_BAND_H, TICK_BAND_H } from './ganttConfig';
 
@@ -15,7 +16,7 @@ import { MONTH_BAND_H, TICK_BAND_H } from './ganttConfig';
 
 export default function GanttHeader({
   columns, gridWidth, layout, zoom, visibleDays, timelineWidth,
-  onResizeColumn, onColumnMenu,
+  onResizeColumn, onColumnMenu, selectedVisibleCount = 0, visibleTaskCount = 0, onToggleAllVisible,
 }) {
   /* Ticks só da faixa visível; o resto vira um espaçador. Em zoom de
      mês, três anos seriam ~1.100 divs para dezenas visíveis. */
@@ -30,7 +31,18 @@ export default function GanttHeader({
   return (
     <div className="gantt-head">
       <div className="gantt-head-grid" style={{ width: gridWidth }}>
-        <div className="gantt-hcell gantt-cell-index">#</div>
+        <div className="gantt-hcell gantt-cell-index">
+          <Checkbox
+            checked={visibleTaskCount > 0 && selectedVisibleCount === visibleTaskCount
+              ? true
+              : selectedVisibleCount > 0 ? 'indeterminate' : false}
+            onCheckedChange={onToggleAllVisible}
+            aria-label="Selecionar todas as tarefas visíveis"
+            title="Selecionar todas as tarefas visíveis"
+            className="gantt-head-select"
+          />
+          <span>#</span>
+        </div>
 
         {columns.map((col) => (
           <div

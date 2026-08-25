@@ -13,7 +13,7 @@ import {
   formatDateTimeShort, clampProgress, isManual, SCHEDULE_MODES, CONSTRAINT_NONE,
 } from '../../utils/schedule';
 import {
-  calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf, rebaseTaskCalendar, workdayStart, workdayEnd,
+  calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf, durationInputUnitOf, rebaseTaskCalendar, workdayStart, workdayEnd,
 } from '../../utils/calendar';
 import {
   addWorkingMinutes, workingMinutesBetween, snapForward, snapBackward, minutesPerDay,
@@ -303,6 +303,21 @@ export default function GanttView() {
       count + readDependencies(task.dependsOn).filter((dep) => ids.has(dep.id)).length
     ), 0);
   }, [selectedTasksInOrder]);
+  const selectedCalendarLabel = useMemo(() => {
+    if (!selectedTasksInOrder.length) return '';
+    const labels = new Set(selectedTasksInOrder.map((task) => (
+      task.calendarId ? calendarFor(task).name : defaultCalendarOf(activeProject).name
+    )));
+    return labels.size === 1 ? [...labels][0] : 'Variados';
+  }, [activeProject, calendarFor, selectedTasksInOrder]);
+  const visibleTaskIds = useMemo(
+    () => rows.filter((row) => row.kind === 'task').map((row) => row.task.id),
+    [rows]
+  );
+  const selectedVisibleCount = useMemo(
+    () => visibleTaskIds.filter((id) => selectedIds.has(id)).length,
+    [selectedIds, visibleTaskIds]
+  );
 
   const vRows = useVirtualRows(viewport, rows.length, rowH, HEADER_H);
   const vDays = useVirtualDays(viewport, gridWidth, zoom.dayWidth, layout.totalDays);
@@ -318,6 +333,42 @@ export default function GanttView() {
     (list, label) => updateTasksBatch(list.map(stripComputed), label),
     [updateTasksBatch]
   );
+
+  /* Uma edição em lote vira uma única entrada de histórico. Para calendário,
+     preservamos os minutos úteis e recalculamos sucessoras automáticas. */
+  const applySelectionPatch = useCallback(async (label, transform, reschedule = false) => {
+    const targets = selectedTasksInOrder.filter((task) => !task.isSummary);
+    if (!targets.length) return;
+
+    let working = tasks;
+    const updatesById = new Map();
+    targets.forEach((selected) => {
+      const current = working.find((task) => task.id === selected.id) || selected;
+      const changed = transform(current);
+      const scheduled = reschedule ? applyAutoScheduling(changed, working) : [changed];
+      scheduled.forEach((task) => updatesById.set(task.id, task));
+      working = working.map((task) => updatesById.get(task.id) || task);
+    });
+
+    const updates = [...updatesById.values()];
+    if (!updates.length) return;
+    await saveTasks(updates, label);
+    showToast(`${targets.length} tarefa${targets.length === 1 ? '' : 's'} atualizada${targets.length === 1 ? '' : 's'}.`, 'success');
+  }, [applyAutoScheduling, saveTasks, selectedTasksInOrder, showToast, tasks]);
+
+  const setSelectionCalendar = useCallback((calendarId) => {
+    applySelectionPatch('Alterar calendário da seleção', (task) => (
+      rebaseTaskCalendar(activeProject, task, calendarId)
+    ), true);
+  }, [activeProject, applySelectionPatch]);
+
+  const setSelectionScheduleMode = useCallback((scheduleMode) => {
+    applySelectionPatch('Alterar modo da seleção', (task) => ({ ...task, scheduleMode }), scheduleMode === SCHEDULE_MODES.AUTO);
+  }, [applySelectionPatch]);
+
+  const setSelectionProgress = useCallback((progress) => {
+    applySelectionPatch('Alterar progresso da seleção', (task) => ({ ...task, progress }));
+  }, [applySelectionPatch]);
 
   /* A ordem é a fonte de verdade: quem está nela aparece, na posição
      em que está. Visibilidade e ordem deixam de ser dois estados que
@@ -380,6 +431,12 @@ export default function GanttView() {
     }),
     [durationMinutesOf, calendarFor, activeProject]
   );
+
+  const durationInputHint = useMemo(() => (
+    durationInputUnitOf(activeProject) === 'hours'
+      ? 'Aceita 3d, 4h ou 90m. Sem sufixo, o número é interpretado como horas úteis.'
+      : 'Aceita 3d, 4h ou 90m. Sem sufixo, o número é interpretado como dias úteis.'
+  ), [activeProject]);
 
   const calendarLabel = useCallback(
     (task) => (task.calendarId ? calendarFor(task).name : ''),
@@ -519,6 +576,24 @@ export default function GanttView() {
     });
   }, [rowIndexById, rows]);
 
+  const toggleTaskSelection = useCallback((task) => {
+    selectionAnchorRef.current = task.id;
+    setActiveCell({ taskId: task.id, colId: 'name' });
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      next.has(task.id) ? next.delete(task.id) : next.add(task.id);
+      return next;
+    });
+  }, []);
+
+  const toggleAllVisibleTasks = useCallback(() => {
+    setSelectedIds((previous) => {
+      const allVisibleSelected = visibleTaskIds.length > 0 && visibleTaskIds.every((id) => previous.has(id));
+      if (allVisibleSelected) return new Set([...previous].filter((id) => !visibleTaskIds.includes(id)));
+      return new Set([...previous, ...visibleTaskIds]);
+    });
+  }, [visibleTaskIds]);
+
   const cancelPendingCellEdit = useCallback(() => {
     if (!pendingCellEditRef.current) return;
     window.clearTimeout(pendingCellEditRef.current);
@@ -594,7 +669,10 @@ export default function GanttView() {
 
     switch (editingCell.colId) {
       case 'duration': {
-        const minutes = resolveDuration(valueToCommit, cal, duration);
+        const minutes = resolveDuration(valueToCommit, cal, duration, {
+          unit: durationDisplayOf(activeProject),
+          defaultUnit: durationInputUnitOf(activeProject),
+        });
         modified = minutes === null || minutes === duration
           ? task
           : { ...task, endDate: addWorkingMinutes(cal, task.startDate, minutes) };
@@ -1228,7 +1306,7 @@ export default function GanttView() {
     timelineWidth,
     dragPreview, dragOverIndex,
     editValue, editInputRef, predecessorLabel,
-    durationLabel, calendarLabel, calendarFor, formatMinutes,
+    durationLabel, durationInputHint, calendarLabel, calendarFor, formatMinutes,
     calendars, projectCalendarName: projectCalendar.name,
     analysis,
     showSlack,
@@ -1236,6 +1314,7 @@ export default function GanttView() {
     onProgressDrag: handleProgressDrag,
     onContextMenu: handleContextMenu,
     onRowMouseDown: handleRowMouseDown,
+    onToggleTaskSelection: toggleTaskSelection,
     onRowClick: handleRowClick,
     onRowDoubleClick: handleRowDoubleClick,
     onToggleCollapse: toggleCollapse,
@@ -1304,6 +1383,12 @@ export default function GanttView() {
         setShowSlack={setShowSlack}
         selectedCount={selectedIds.size}
         selectedDependencyCount={selectedDependencyCount}
+        selectedCalendarLabel={selectedCalendarLabel}
+        onSelectionCalendarChange={setSelectionCalendar}
+        onSelectionScheduleMode={setSelectionScheduleMode}
+        onSelectionProgress={setSelectionProgress}
+        onOpenSelectedDetails={() => selectedTasksInOrder[0] && openTaskInspector(selectedTasksInOrder[0].id)}
+        onClearSelection={() => setSelectedIds(new Set())}
         onIndent={() => handleIndent(1)}
         onOutdent={() => handleIndent(-1)}
         onLink={handleLinkSelected}
@@ -1382,6 +1467,9 @@ export default function GanttView() {
               visibleDays={vDays}
               onResizeColumn={handleResizeColumn}
               onColumnMenu={openColumnMenu}
+              selectedVisibleCount={selectedVisibleCount}
+              visibleTaskCount={visibleTaskIds.length}
+              onToggleAllVisible={toggleAllVisibleTasks}
             />
 
             <div className="gantt-rows">

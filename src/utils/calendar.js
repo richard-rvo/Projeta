@@ -74,13 +74,22 @@ export const DEFAULT_CALENDAR_ID = DEFAULT_CALENDAR.id;
 
 export const DURATION_DISPLAY_OPTIONS = [
   { id: 'auto', label: 'Automático', description: 'Horas abaixo de um dia e dias acima dele' },
-  { id: 'hours', label: 'Sempre em horas', description: 'Mantém a duração visível em horas' },
-  { id: 'days', label: 'Sempre em dias', description: 'Exibe a duração usando a jornada do calendário' },
+  { id: 'hours', label: 'Sempre em horas', description: 'Exibe e aceita números sem sufixo como horas úteis' },
+  { id: 'days', label: 'Sempre em dias', description: 'Exibe e aceita números sem sufixo como dias úteis' },
 ];
 
 export function durationDisplayOf(project) {
   const value = project?.calendarSettings?.durationDisplay;
   return DURATION_DISPLAY_OPTIONS.some((option) => option.id === value) ? value : 'auto';
+}
+
+/**
+ * A unidade implícita ao editar uma duração. A configuração "Sempre em
+ * horas" não pode ser só cosmética: se a grade mostra "48h", digitar
+ * "48" precisa continuar significando 48 horas úteis, e não 48 dias.
+ */
+export function durationInputUnitOf(project) {
+  return durationDisplayOf(project) === 'hours' ? 'hours' : 'days';
 }
 
 /* ── Forma ─────────────────────────────────────────────────────── */

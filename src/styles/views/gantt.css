@@ -314,15 +314,30 @@
   }
 
   .gantt-cell-index {
-    width: 46px;
-    flex: 0 0 46px;
-    gap: 2px;
+    width: 56px;
+    flex: 0 0 56px;
+    gap: 4px;
     justify-content: flex-end;
     padding: 0 var(--gantt-cell-px) 0 4px;
     font-size: var(--gantt-text-micro);
     color: var(--text-3);
     background: var(--surface-2);
     user-select: none;
+  }
+
+  .gantt-row-select,
+  .gantt-head-select {
+    flex: 0 0 auto;
+  }
+
+  .gantt-row-select {
+    opacity: 0;
+    transition: opacity var(--dur-1) var(--ease-standard);
+  }
+
+  .gantt-row:hover .gantt-row-select,
+  .gantt-row.is-selected .gantt-row-select {
+    opacity: 1;
   }
 
   .gantt-row.is-selected .gantt-cell-index {

@@ -17,8 +17,9 @@ import { minutesPerDay } from './worktime';
    calendário DA TAREFA. "1 dia" não é uma quantidade de tempo: é
    `minutesPerDay(calendário)` — 8h no Padrão, 24h no 24 Horas.
 
-   A entrada aceita a notação do MS Project: `3d`, `4h`, `90m`. Número
-   solto é dia, que é o que o planejador digita 95% das vezes.
+   A entrada aceita a notação do MS Project: `3d`, `4h`, `90m`. O número
+   sem sufixo segue a unidade que está fixa na exibição do projeto: ao usar
+   “Sempre em horas”, `48` significa 48 horas úteis — nunca 48 dias.
    ═══════════════════════════════════════════════════════════════ */
 
 const MINUTES_PER_HOUR = 60;
@@ -62,7 +63,7 @@ export function formatDuration(minutes, cal, options = {}) {
  * ler, para o chamador poder manter o valor anterior em vez de
  * gravar zero.
  */
-export function parseDuration(text, cal) {
+export function parseDuration(text, cal, options = {}) {
   const raw = String(text ?? '').trim().toLowerCase().replace(',', '.');
   if (!raw) return null;
 
@@ -72,7 +73,9 @@ export function parseDuration(text, cal) {
   const value = parseFloat(match[1]);
   if (!Number.isFinite(value) || value < 0) return null;
 
-  const unit = (match[2] || 'd')[0]; // d | h | m
+  const configuredUnit = options.defaultUnit || options.unit;
+  const fallbackUnit = configuredUnit === 'hours' ? 'h' : 'd';
+  const unit = (match[2] || fallbackUnit)[0]; // d | h | m
   if (unit === 'h') return Math.round(value * MINUTES_PER_HOUR);
   if (unit === 'm') return Math.round(value);
   return Math.round(value * minutesPerDay(cal));
@@ -92,10 +95,12 @@ export function parseDuration(text, cal) {
  *
  * Devolve null quando não dá para ler — aí o chamador não grava.
  */
-export function resolveDuration(text, cal, currentMinutes) {
-  const parsed = parseDuration(text, cal);
+export function resolveDuration(text, cal, currentMinutes, options = {}) {
+  const parsed = parseDuration(text, cal, options);
   if (parsed === null) return null;
-  if (formatDuration(parsed, cal) === formatDuration(currentMinutes, cal)) {
+  if (
+    formatDuration(parsed, cal, options) === formatDuration(currentMinutes, cal, options)
+  ) {
     return currentMinutes;
   }
   return parsed;

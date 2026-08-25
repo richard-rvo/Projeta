@@ -3,6 +3,7 @@ import { ChevronRight, GripVertical, AlertTriangle } from 'lucide-react';
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { isMilestone, isManual } from '../../utils/schedule';
 import {
   viewStart, viewEnd, viewProgress, stageOf, isLate,
@@ -36,6 +37,7 @@ export default function GanttRow({ task, index, rowNumber, ctx }) {
     showBaseline,
     dragPreview,
     onRowMouseDown,
+    onToggleTaskSelection,
     onRowClick,
     onRowDoubleClick,
     onToggleCollapse,
@@ -115,6 +117,13 @@ export default function GanttRow({ task, index, rowNumber, ctx }) {
           draggable={!editingCell}
           onDragStart={(e) => onRowDragStart(e, task)}
         >
+          <Checkbox
+            checked={selected}
+            onPointerDown={(e) => e.stopPropagation()}
+            onCheckedChange={() => onToggleTaskSelection(task)}
+            aria-label={`Selecionar ${task.name}`}
+            className="gantt-row-select"
+          />
           <GripVertical size={11} className="gantt-grip" />
           <span className="tabular">{rowNumber ?? index + 1}</span>
         </div>
@@ -353,6 +362,7 @@ function CellEditor({ col, ctx, value, inputRef, onChange, onCommit, onCancel })
             : 'text'
       }
       value={value}
+      title={col.id === 'duration' ? ctx.durationInputHint : undefined}
       onChange={(e) => onChange(e.target.value)}
       onFocus={(e) => {
         if (col.type === 'text') e.target.select();
