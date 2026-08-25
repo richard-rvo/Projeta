@@ -26,3 +26,11 @@ Supabase.
 O script é idempotente: garante o perfil, reutiliza o primeiro workspace que o
 usuário já possui ou cria um novo, e garante o membership `owner`. Ele não
 altera senha, e-mail ou tokens.
+
+## Corrigir erro de permissão no workspace
+
+Se o log do Supabase mostrar `42501 permission denied for function
+is_workspace_member` ou uma requisição `GET /rest/v1/workspaces` com `403`,
+execute [`fix_workspace_rls_permissions.sql`](fix_workspace_rls_permissions.sql)
+no SQL Editor. A causa é a ausência de `EXECUTE` para o papel `authenticated`
+nas funções usadas pelas policies RLS.
