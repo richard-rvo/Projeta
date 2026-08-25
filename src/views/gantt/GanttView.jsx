@@ -2,19 +2,10 @@ import React, {
   useContext, useState, useRef, useCallback, useEffect, useMemo,
 } from 'react';
 import { AppContext } from '../../context/AppContext';
-import ViewBar, {
-  ViewBarButton, ViewBarSegments,
-} from '../../components/shell/ViewBar';
-import {
-  DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import * as XLSX from 'xlsx';
 import {
-  AlertCircle, Download, FileText, FolderTree, Link2, Link2Off, Plus, Target,
-  Undo2, Redo2, Maximize2,
+  AlertCircle, Plus,
 } from 'lucide-react';
 
 import {
@@ -56,8 +47,7 @@ import GanttRow from './GanttRow';
 import GanttDependencies from './GanttDependencies';
 import GanttTooltip from './GanttTooltip';
 import GanttContextMenu from './GanttContextMenu';
-import GanttCalendarMenu from './GanttCalendarMenu';
-import GanttFilterMenu from './GanttFilterMenu';
+import GanttRibbon from './GanttRibbon';
 import GanttColumnMenu from './GanttColumnMenu';
 import GanttGroupRow from './GanttGroupRow';
 import GanttMinimap from './GanttMinimap';
@@ -151,7 +141,7 @@ function buildProjectSummaryTask(project, tasks, calendarFor) {
 export default function GanttView() {
   const {
     state, addTask, addTasks, updateTasksBatch, removeTasks, showToast, updateProjectPatch,
-    undo, redo, canUndo, canRedo, openTaskInspector,
+    undo, redo, canUndo, canRedo, navigate, openTaskInspector,
   } = useContext(AppContext);
 
   /* ── Estado da view ─────────────────────────────────────────── */
@@ -1277,14 +1267,6 @@ export default function GanttView() {
      dia da semana em que a timeline começa. */
   const weekendPhase =
     ((new Date(`${layout.rangeStart}T00:00:00Z`).getUTCDay() + 6) % 7) * zoom.dayWidth;
-  const displayMenuActive =
-    density.id !== DEFAULT_GANTT_DENSITY ||
-    !showProjectSummary ||
-    !showBarLabels ||
-    showCriticalPath ||
-    showSlack;
-  const planningMenuActive = baselineCount > 0 || selectedIds.size >= 2 || selectedDependencyCount > 0;
-
   return (
     <div
       className={`gantt-view is-density-${density.id}`}
@@ -1296,194 +1278,54 @@ export default function GanttView() {
         '--gantt-cell-px': `${density.cellPadding}px`,
       }}
     >
-      <ViewBar className="gantt-commandbar !overflow-x-hidden !overflow-y-visible">
-        <div className="flex min-w-0 items-center gap-1" role="group" aria-label="Escala do Gantt">
-          <ViewBarSegments
-            options={ZOOM_LEVELS.map((z) => ({ id: z.id, label: z.label }))}
-            value={zoom.id}
-            onChange={(id) => setDayWidth(ZOOM_LEVELS.find((z) => z.id === id).dayWidth)}
-          />
-          <ViewBarButton icon={Maximize2} onClick={fitToProject} title="Ajustar o projeto inteiro à tela">
-            Ajustar
-          </ViewBarButton>
-        </div>
+      <GanttRibbon
+        project={activeProject}
+        tasks={tasks}
+        filters={filters}
+        filteredOut={filteredOut}
+        onFiltersChange={setFilters}
+        zoom={zoom}
+        zoomLevels={ZOOM_LEVELS}
+        onZoom={(id) => {
+          const next = ZOOM_LEVELS.find((level) => level.id === id);
+          if (next) setDayWidth(next.dayWidth);
+        }}
+        onFit={fitToProject}
+        density={density}
+        setDensityId={setDensityId}
+        densities={GANTT_DENSITIES}
+        showProjectSummary={showProjectSummary}
+        setShowProjectSummary={setShowProjectSummary}
+        showBarLabels={showBarLabels}
+        setShowBarLabels={setShowBarLabels}
+        showCriticalPath={showCriticalPath}
+        setShowCriticalPath={setShowCriticalPath}
+        showSlack={showSlack}
+        setShowSlack={setShowSlack}
+        selectedCount={selectedIds.size}
+        selectedDependencyCount={selectedDependencyCount}
+        onIndent={() => handleIndent(1)}
+        onOutdent={() => handleIndent(-1)}
+        onLink={handleLinkSelected}
+        onUnlink={handleUnlinkSelected}
+        baselineCount={baselineCount}
+        showBaseline={showBaseline}
+        setShowBaseline={setShowBaseline}
+        onSaveBaseline={saveBaseline}
+        onClearBaseline={clearBaseline}
+        onCalendarChange={(patch) => updateProjectPatch(state.activeProjectId, patch)}
+        onProjectSettings={() => navigate('pageSettings')}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        onNewTask={() => newTaskRef.current?.focus()}
+        onExcel={exportToExcel}
+        onPdf={exportToPdf}
+        orientation={printOrientation}
+        setOrientation={setPrintOrientation}
+      />
 
-        <div className="flex min-w-0 items-center gap-1" role="group" aria-label="Comandos do Gantt">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <ViewBarButton icon={FolderTree} active={displayMenuActive}>
-                Exibição
-              </ViewBarButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuLabel className="text-micro uppercase tracking-wide text-text-3">
-                Densidade
-              </DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={density.id} onValueChange={setDensityId}>
-                {GANTT_DENSITIES.map((item) => (
-                  <DropdownMenuRadioItem
-                    key={item.id}
-                    value={item.id}
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    {item.label}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuCheckboxItem
-                  checked={showProjectSummary}
-                  onCheckedChange={setShowProjectSummary}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  Resumo global
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={showBarLabels}
-                  onCheckedChange={setShowBarLabels}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  Rótulos nas barras
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={showCriticalPath}
-                  onCheckedChange={setShowCriticalPath}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  Caminho crítico
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={showSlack}
-                  onCheckedChange={setShowSlack}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  Folga total
-                </DropdownMenuCheckboxItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <ViewBarButton icon={Target} active={planningMenuActive}>
-                Planejar
-              </ViewBarButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuLabel className="text-micro uppercase tracking-wide text-text-3">
-                Seleção
-              </DropdownMenuLabel>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  disabled={selectedIds.size < 2}
-                  onSelect={handleLinkSelected}
-                >
-                  <Link2 />
-                  Vincular término-início
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={selectedDependencyCount === 0}
-                  onSelect={handleUnlinkSelected}
-                >
-                  <Link2Off />
-                  Remover vínculos da seleção
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-micro uppercase tracking-wide text-text-3">
-                {baselineCount > 0
-                  ? `Linha de base: ${baselineCount}/${tasks.length}`
-                  : 'Linha de base'}
-              </DropdownMenuLabel>
-              <DropdownMenuGroup>
-                <DropdownMenuItem onSelect={() => saveBaseline('project')}>
-                  Gravar do projeto inteiro
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={selectedIds.size === 0}
-                  onSelect={() => saveBaseline('selection')}
-                >
-                  Gravar da seleção ({selectedIds.size})
-                </DropdownMenuItem>
-                <DropdownMenuCheckboxItem
-                  checked={showBaseline}
-                  disabled={baselineCount === 0}
-                  onCheckedChange={setShowBaseline}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  Mostrar na barra
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuItem
-                  disabled={baselineCount === 0}
-                  onSelect={clearBaseline}
-                  className="text-sched-late"
-                >
-                  Limpar linha de base
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <GanttCalendarMenu
-            project={activeProject}
-            tasks={tasks}
-            triggerLabel="Calendário"
-            onChange={(patch) => updateProjectPatch(state.activeProjectId, patch)}
-          />
-
-          <GanttFilterMenu filters={filters} onChange={setFilters} filteredOut={filteredOut} />
-        </div>
-
-        <div className="ml-auto" />
-
-        <div className="flex shrink-0 items-center gap-0.5" role="group" aria-label="Histórico de edição">
-          <ViewBarButton icon={Undo2} onClick={undo} disabled={!canUndo} title="Desfazer (⌘Z)" />
-          <ViewBarButton icon={Redo2} onClick={redo} disabled={!canRedo} title="Refazer (⇧⌘Z)" />
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1" role="group" aria-label="Saída e criação">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <ViewBarButton icon={Download} title="Exportar cronograma">
-                Exportar
-              </ViewBarButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel className="text-micro uppercase tracking-wide text-text-3">
-                Arquivos
-              </DropdownMenuLabel>
-              <DropdownMenuItem onSelect={exportToExcel}>
-                <Download />
-                Exportar para Excel
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="px-2 py-1 text-micro uppercase tracking-wide text-text-3">
-                  PDF
-                </DropdownMenuLabel>
-                <DropdownMenuRadioGroup value={printOrientation} onValueChange={setPrintOrientation}>
-                  <DropdownMenuRadioItem value="landscape" onSelect={(e) => e.preventDefault()}>
-                    Paisagem
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="portrait" onSelect={(e) => e.preventDefault()}>
-                    Retrato
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={exportToPdf}>
-                <FileText />
-                Imprimir ou salvar PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <ViewBarButton icon={Plus} variant="primary" onClick={() => newTaskRef.current?.focus()}>
-            Tarefa
-          </ViewBarButton>
-        </div>
-      </ViewBar>
 
       {/* Ciclo e prazo estourado: a análise já media os dois e nenhum
           componente lia. Um cronograma com dependência circular não tem

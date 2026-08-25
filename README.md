@@ -67,9 +67,6 @@ marcos, anomalias abertas e Curva S.
 O Quadro apresenta as tarefas por status e permite arrastá-las entre colunas.
 Ao mover uma tarefa para Concluída, o progresso é atualizado para 100%.
 
-A tela de Tarefas oferece tabela operacional com busca, filtros, ordenação,
-seleção múltipla, edição e exclusão em massa.
-
 ### Curva S
 
 Compara o progresso planejado e realizado ao longo do tempo, ponderado pela
@@ -115,7 +112,7 @@ anomalia. O projeto ainda não usa Supabase Storage para fotos.
 - Logo: [`public/logo-premium.svg`](public/logo-premium.svg).
 - Interface responsiva, com foco em desktop e experiência adaptada para campo.
 - Trilho global para Portfólio, Anomalias, Relatórios e Configurações.
-- Barra de contexto para Visão Geral, Gantt, Quadro, Curva S, Tarefas e Anomalias.
+- Navegação contextual por projeto para Visão Geral, Gantt, Quadro, Curva S e Anomalias.
 - Design system baseado em tokens, Tailwind CSS e componentes Radix/shadcn.
 - Ícones Lucide e foco visível para navegação por teclado.
 

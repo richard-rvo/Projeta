@@ -22,7 +22,7 @@ const initialState = {
     error: null,
   },
   activeProjectId: null,
-  activeProjectTab: 'overview',   // 'overview' | 'gantt' | 'kanban' | 'scurve' | 'tasklist' | 'anomalies'
+  activeProjectTab: 'overview',   // 'overview' | 'gantt' | 'kanban' | 'scurve' | 'anomalies'
   activePage: 'pagePortfolio',    // global page when no project workspace is open
   theme: 'light',
   toast: null,

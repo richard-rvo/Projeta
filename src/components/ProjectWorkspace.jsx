@@ -5,7 +5,6 @@ import PageProjectOverview from '../pages/PageProjectOverview';
 import GanttView from '../views/gantt/GanttView';
 import PageKanban from '../pages/PageKanban';
 import PageSCurve from '../pages/PageSCurve';
-import PageTaskList from '../pages/PageTaskList';
 import PageProjectAnomalies from '../pages/PageProjectAnomalies';
 
 /**
@@ -32,8 +31,6 @@ export default function ProjectWorkspace() {
        elas administram o próprio scroll abaixo da barra. */
     case 'scurve':
       return <PageSCurve />;
-    case 'tasklist':
-      return <PageTaskList />;
     case 'anomalies':
       return <PageProjectAnomalies />;
     case 'overview':

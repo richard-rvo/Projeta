@@ -3,9 +3,7 @@ import { AppContext } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 import { exportWorkspaceBackup } from '@/utils/supabaseRepository';
 import ProjectDialog from '@/components/ProjectDialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,24 +23,9 @@ import {
   RefreshCw,
   Search,
   Settings,
-  LayoutPanelLeft,
-  GanttChartSquare,
-  Columns3,
-  TrendingUp,
-  ListChecks,
-  AlertTriangle,
   Check,
   Pencil,
 } from 'lucide-react';
-
-export const PROJECT_VIEWS = [
-  { id: 'overview', icon: LayoutPanelLeft, label: 'Visão Geral' },
-  { id: 'gantt', icon: GanttChartSquare, label: 'Gantt' },
-  { id: 'kanban', icon: Columns3, label: 'Quadro' },
-  { id: 'scurve', icon: TrendingUp, label: 'Curva S' },
-  { id: 'tasklist', icon: ListChecks, label: 'Tarefas' },
-  { id: 'anomalies', icon: AlertTriangle, label: 'Anomalias', badge: true },
-];
 
 const GLOBAL_TITLES = {
   pagePortfolio: 'Portfólio',
@@ -60,7 +43,7 @@ const GLOBAL_TITLES = {
  */
 export default function TopBar() {
   const {
-    state, selectProject, setProjectTab, toggleCommandPalette,
+    state, selectProject, toggleCommandPalette,
     updateProject, showToast, navigate, verifyLocalSave, signOut,
   } =
     useContext(AppContext);
@@ -110,18 +93,6 @@ export default function TopBar() {
         <h1 className="shrink-0 pl-2 text-[17px] font-semibold tracking-tight text-text-1">
           {GLOBAL_TITLES[state.activePage] || 'Projeta'}
         </h1>
-      )}
-
-      {insideProject && project && (
-        <ViewSegments
-          active={state.activeProjectTab || 'overview'}
-          onChange={setProjectTab}
-          anomalyCount={
-            state.anomalies.filter(
-              (a) => a.projectId === state.activeProjectId && a.status === 'aberta'
-            ).length
-          }
-        />
       )}
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -305,39 +276,5 @@ function ProjectIdentity({ project, projects, onSelect, onEdit }) {
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-  );
-}
-
-/* ── Segmented control das views ─────────────────────────────────── */
-
-function ViewSegments({ active, onChange, anomalyCount }) {
-  return (
-    <ToggleGroup
-      type="single"
-      value={active}
-      onValueChange={(next) => next && onChange(next)}
-      size="sm"
-      className="min-w-0 overflow-x-auto"
-      aria-label="Visão do projeto"
-    >
-      {PROJECT_VIEWS.map((view) => {
-        const Icon = view.icon;
-        const showBadge = view.badge && anomalyCount > 0;
-        return (
-          <ToggleGroupItem
-            key={view.id}
-            value={view.id}
-          >
-            <Icon data-icon="inline-start" />
-            <span className="whitespace-nowrap">{view.label}</span>
-            {showBadge && (
-              <Badge variant="destructive" className="ml-0.5">
-                {anomalyCount > 99 ? '99+' : anomalyCount}
-              </Badge>
-            )}
-          </ToggleGroupItem>
-        );
-      })}
-    </ToggleGroup>
   );
 }

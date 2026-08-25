@@ -48,7 +48,7 @@ function newId(existing) {
   return `cal-${i}`;
 }
 
-export default function GanttCalendarMenu({ project, tasks = [], onChange, triggerLabel = 'Calendários' }) {
+export default function GanttCalendarMenu({ project, tasks = [], onChange, triggerLabel = 'Calendários', trigger }) {
   const calendars = calendarsOf(project);
   const defaultId = defaultCalendarOf(project).id;
 
@@ -165,7 +165,7 @@ export default function GanttCalendarMenu({ project, tasks = [], onChange, trigg
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <ViewBarButton icon={Calendar}>{triggerLabel}</ViewBarButton>
+        {trigger || <ViewBarButton icon={Calendar}>{triggerLabel}</ViewBarButton>}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         {/* ── Biblioteca ─────────────────────────────────────── */}

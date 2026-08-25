@@ -9,7 +9,7 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command';
-import { PROJECT_VIEWS } from './shell/TopBar';
+import { PROJECT_VIEWS } from './shell/projectViews';
 import {
   LayoutGrid,
   AlertTriangle,

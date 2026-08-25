@@ -155,7 +155,7 @@ export default function PageProjectOverview() {
           <Card
             title="Próximas entregas"
             icon={Clock}
-            action={{ label: 'Tarefas', onClick: () => setProjectTab('tasklist') }}
+            action={{ label: 'Abrir Gantt', onClick: () => setProjectTab('gantt') }}
           >
             {upcoming.length ? (
               <ul className="flex flex-col">

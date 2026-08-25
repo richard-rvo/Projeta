@@ -9,7 +9,7 @@ import { Filter, X } from 'lucide-react';
 import { GROUP_OPTIONS, EMPTY_FILTERS, hasActiveFilters } from './useGanttFilters';
 import { STAGES } from '../../utils/taskState';
 
-export default function GanttFilterMenu({ filters, onChange, filteredOut }) {
+export default function GanttFilterMenu({ filters, onChange, filteredOut, trigger }) {
   const active = hasActiveFilters(filters);
   const grouping = filters.group !== 'none';
 
@@ -23,7 +23,7 @@ export default function GanttFilterMenu({ filters, onChange, filteredOut }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <ViewBarButton icon={Filter} active={active || grouping}>
+        {trigger || <ViewBarButton icon={Filter} active={active || grouping}>
           {active || grouping ? (
             <span className="flex items-center gap-1">
               Filtros
@@ -36,7 +36,7 @@ export default function GanttFilterMenu({ filters, onChange, filteredOut }) {
           ) : (
             'Filtros'
           )}
-        </ViewBarButton>
+        </ViewBarButton>}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-60">

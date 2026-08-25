@@ -13,6 +13,7 @@ import {
   Pin,
   PinOff,
 } from 'lucide-react';
+import { PROJECT_VIEWS } from './projectViews';
 
 const NAV_ITEMS = [
   { id: 'pagePortfolio', icon: LayoutGrid, label: 'Portfólio' },
@@ -33,7 +34,7 @@ const RAIL_W_OPEN = 224;
  * verdade no layout.
  */
 export default function AppRail() {
-  const { state, navigate, toggleRailPinned, setTheme } =
+  const { state, navigate, setProjectTab, toggleRailPinned, setTheme } =
     useContext(AppContext);
   const [hovered, setHovered] = useState(false);
 
@@ -42,6 +43,8 @@ export default function AppRail() {
 
   const openAnomalies = state.anomalies.filter((a) => a.status === 'aberta').length;
   const isDark = state.theme === 'dark';
+  const insideProject = state.activePage === 'pageProjectWorkspace';
+  const activeProjectTab = state.activeProjectTab || 'overview';
 
   /* Dentro de um projeto nenhum item global fica aceso — o contexto
      está no TopBar, não aqui. */
@@ -86,8 +89,45 @@ export default function AppRail() {
           </div>
         </div>
 
-        {/* ── Navegação ────────────────────────────────────────── */}
+        {insideProject && (
+          <nav className="flex flex-col gap-0.5 border-b border-line px-3 py-2" aria-label="Navegação do projeto">
+            <RailSectionLabel open={open}>Projeto</RailSectionLabel>
+            {PROJECT_VIEWS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeProjectTab === item.id;
+              const badge = item.badge
+                ? state.anomalies.filter((anomaly) => (
+                  anomaly.projectId === state.activeProjectId && anomaly.status === 'aberta'
+                )).length
+                : 0;
+              return (
+                <Button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setProjectTab(item.id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={!open ? item.label : undefined}
+                  title={!open ? item.label : undefined}
+                  variant={isActive ? 'navActive' : 'nav'}
+                  className="relative h-9 w-full justify-start gap-3 px-2.5"
+                >
+                  <span className="relative grid size-5 shrink-0 place-items-center">
+                    <Icon />
+                    {badge > 0 && !open && <span className="absolute -right-1 -top-1 size-2 rounded-full bg-sched-late ring-2 ring-surface-1" />}
+                  </span>
+                  <span className={cn('flex-1 whitespace-nowrap text-small font-medium transition-opacity duration-150', open ? 'opacity-100' : 'opacity-0')}>
+                    {item.label}
+                  </span>
+                  {badge > 0 && open && <Badge variant="destructive" className="ml-auto">{badge > 99 ? '99+' : badge}</Badge>}
+                </Button>
+              );
+            })}
+          </nav>
+        )}
+
+        {/* ── Navegação global ─────────────────────────────────── */}
         <nav className="flex flex-col gap-0.5 px-3 pt-2">
+          <RailSectionLabel open={open}>Sistema</RailSectionLabel>
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeId === item.id;
@@ -149,6 +189,17 @@ export default function AppRail() {
 
       </aside>
     </div>
+  );
+}
+
+function RailSectionLabel({ open, children }) {
+  return (
+    <span className={cn(
+      'h-4 overflow-hidden px-2.5 text-micro font-semibold uppercase tracking-[0.12em] text-text-3 transition-opacity duration-150',
+      open ? 'opacity-100' : 'opacity-0'
+    )}>
+      {children}
+    </span>
   );
 }
 
