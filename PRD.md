@@ -2,7 +2,7 @@
 
 ## Projeta — sistema de gestão de projetos
 
-**Versão:** 4.0
+**Versão:** 4.1
 **Atualizado:** agosto de 2026
 **Produto:** Projeta
 **Domínio:** https://projeta.richardvieira.com.br
@@ -87,8 +87,9 @@ compacto, expande ao passar o mouse e pode ser fixado.
 O `TopBar` apresenta o contexto atual, seleção de projeto, abas do projeto,
 busca/atalhos, estado de salvamento, exportação de backup e sessão.
 
-As visões de projeto são: Visão Geral, Gantt, Quadro, Curva S, Tarefas e
-Anomalias.
+As visões de projeto são: Visão Geral, Gantt, Quadro, Curva S e Anomalias.
+Não há uma página de Tarefas separada: a grade do Gantt é a fonte operacional
+para edição e planejamento das tarefas.
 
 ## 7. Requisitos funcionais
 
@@ -123,8 +124,28 @@ O Gantt deve suportar:
 - Filtros por texto, status, atraso e criticidade.
 - Agrupamento e colunas configuráveis.
 - Zoom contínuo, ajuste ao projeto e minimapa.
-- Seleção, menu de contexto, copiar/colar e atalhos de teclado.
+- Seleção individual e múltipla por checkbox, `⌘/Ctrl + clique`, `Shift +
+  clique` e teclado, incluindo seleção de todas as tarefas visíveis na grade.
+- Faixa contextual de edição em lote ao selecionar uma ou mais tarefas.
+- Menu "Opções da tarefa" com submenus de calendário, modo de agendamento,
+  progresso, detalhes e limpeza de seleção.
+- Aplicação de calendário, modo ou progresso para várias tarefas em uma única
+  operação de histórico; a mudança de calendário preserva a duração em
+  minutos úteis e replaneja sucessoras automáticas quando necessário.
+- Menu de contexto, copiar/colar e atalhos de teclado.
 - Desfazer e refazer das alterações da sessão.
+
+#### Faixa de comandos do Gantt
+
+A faixa superior segue um modelo de comandos contextual, inspirado no fluxo do
+MS Project sem replicar seu ribbon legado. Ela possui as abas Tarefa, Projeto,
+Exibir e Formato. Os comandos são horizontais e compactos; ações de seleção
+aparecem somente quando há tarefas selecionadas.
+
+- **Tarefa:** criação, hierarquia, vínculos e linha de base.
+- **Projeto:** informações, biblioteca de calendários e linha de base global.
+- **Exibir:** escala, ajuste ao projeto, filtros, densidade e dados visíveis.
+- **Formato:** rótulos, caminho crítico e folga das barras.
 
 ### 7.4 Motor de cronograma
 
@@ -149,8 +170,20 @@ calendário padrão do projeto.
 Cada projeto possui uma biblioteca de calendários. Um calendário contém nome,
 dias úteis, um ou mais turnos de trabalho, intervalos de cada turno e feriados.
 
+O painel de calendário é uma biblioteca de planejamento: mostra os
+calendários do projeto em uma lista lateral, destaca o padrão e permite editar
+o calendário aberto com resumo de jornada, dias úteis, turnos e feriados.
+
 O usuário pode criar calendários a partir de presets, escolher o padrão, editar
-turnos e feriados e definir o formato de exibição da duração.
+turnos e feriados e definir o formato de exibição da duração. Uma tarefa sem
+`calendar_id` herda o padrão do projeto; uma tarefa pode receber um calendário
+individual pelo inspetor, pela coluna ou pela edição em lote.
+
+As durações são sempre armazenadas e calculadas em minutos úteis. A preferência
+de exibição não altera datas nem duração armazenada: ela apenas muda o rótulo.
+Ao usar "Sempre em horas", um número digitado sem sufixo na duração representa
+horas úteis; nos demais modos, representa dias úteis. A entrada explícita
+aceita `3d`, `4h` e `90m` em todos os modos.
 
 ### 7.6 Quadro
 
@@ -237,6 +270,10 @@ sobre o Projeta.
 - Overlays com foco, Escape e papéis ARIA adequados.
 - Contraste compatível com o tema selecionado.
 - Operação por teclado nas interações principais do Gantt.
+- Seleção em lote perceptível por checkbox, destaque de linha e contagem de
+  tarefas selecionadas.
+- Menus e submenus de ações em lote devem expor rótulos, estado desabilitado e
+  foco por teclado.
 
 ### Segurança
 
