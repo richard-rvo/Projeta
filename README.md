@@ -75,6 +75,27 @@ npm run dev
 > Vite falha avisando em vez de subir noutra porta e trocar de banco. Se der esse
 > erro, é um `npm run dev` esquecido — derrube com `lsof -ti:5174 | xargs kill`.
 
+## Publicação na Vercel
+
+O projeto já está configurado para publicação como uma SPA Vite. Na Vercel,
+importe este repositório e use os valores padrão abaixo:
+
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **Install Command:** `npm install`
+
+Configure também estas variáveis em **Project Settings → Environment Variables**
+para os ambientes Production, Preview e Development:
+
+```text
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anon-publica
+```
+
+Use somente a chave anon pública no frontend. Nunca configure
+`SUPABASE_SERVICE_ROLE_KEY` ou outra credencial administrativa em uma variável
+`VITE_`.
+
 ---
 
 ## 📁 Estrutura do Projeto
