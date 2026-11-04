@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { validatePassword } from '@/utils/password';
+import { authErrorMessage, isTransientAuthError } from '@/utils/authErrors';
 
 const FORGOT_MESSAGE = 'Se houver uma conta com este e-mail, enviamos um link para redefinir a senha.';
 
@@ -21,10 +22,11 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
     if (isForgot) {
       setBusy(true);
       try {
-        await requestPasswordReset(form.email.trim());
-        // Mensagem neutra: não revela se a conta existe, mesmo se o Supabase devolver erro.
-        setMessage(FORGOT_MESSAGE);
-      } catch (submitError) { setError(submitError?.message || 'Não foi possível enviar o link agora. Tente novamente.'); } finally { setBusy(false); }
+        const result = await requestPasswordReset(form.email.trim());
+        // Mensagem neutra: não revela se a conta existe. Só falhas de rede, limite ou servidor viram erro.
+        if (isTransientAuthError(result?.error)) setError(authErrorMessage(result.error));
+        else setMessage(FORGOT_MESSAGE);
+      } catch (submitError) { setError(authErrorMessage(submitError)); } finally { setBusy(false); }
       return;
     }
     if (isSignup || isReset) {
@@ -36,13 +38,13 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
     try {
       if (isReset) {
         const result = await updatePassword(form.password);
-        if (result?.error) throw result.error;
+        if (result?.error) setError(authErrorMessage(result.error));
         return;
       }
       const result = isSignup ? await signUp(form.email.trim(), form.password, form.name.trim()) : await signIn(form.email.trim(), form.password);
       if (result?.error) throw result.error;
       if (isSignup && !result?.data?.session) setMessage('Conta criada. Confira seu e-mail para confirmar o acesso.');
-    } catch (submitError) { setError(submitError?.message || 'Não foi possível concluir o acesso.'); } finally { setBusy(false); }
+    } catch (submitError) { setError(isReset ? authErrorMessage(submitError) : (submitError?.message || 'Não foi possível concluir o acesso.')); } finally { setBusy(false); }
   };
 
   const goTo = (next) => { setError(''); setMessage(''); onModeChange(next); };
