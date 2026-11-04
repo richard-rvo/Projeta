@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  adminClient,
   bootstrapWorkspace,
   cleanupTestUsers,
   createAnomaly,
@@ -53,19 +54,48 @@ describe('restrições de dados e limites de plano', () => {
     expect(error?.code).toBe('23514');
   });
 
+  async function userWithNineProjects(label) {
+    const U = await createTestUser(label);
+    const w = await bootstrapWorkspace(U);
+    for (let i = 0; i < 9; i += 1) await createProject(U, w.id, { name: `P${i}` });
+    return { U, w };
+  }
+
   it('bloqueia o 11º projeto no plano free', async () => {
-    // P já existe; cria mais 9 para chegar a 10.
-    for (let i = 0; i < 9; i += 1) await createProject(A, ws.id, { name: `P${i}` });
-    const { error } = await A.client
+    const { U, w } = await userWithNineProjects('cons-limit');
+    await createProject(U, w.id, { name: 'Décimo' });
+    const { error } = await U.client
       .from('projects')
-      .insert({ workspace_id: ws.id, name: 'Décimo primeiro' });
+      .insert({ workspace_id: w.id, name: 'Décimo primeiro' });
+    expect(error?.code).toBe('P0001');
     expect(error?.message).toContain('plan_limit_projects');
   });
 
   it('com 10 projetos, salvar um projeto existente continua funcionando', async () => {
-    const row = projectToRow({ id: P.id, name: 'Renomeado', createdAt: P.created_at }, ws.id);
-    const { data, error } = await A.client.from('projects').upsert(row).select('*').single();
+    const { U, w } = await userWithNineProjects('cons-upsert');
+    const last = await createProject(U, w.id, { name: 'Décimo' });
+    const row = projectToRow({ id: last.id, name: 'Renomeado', createdAt: last.created_at }, w.id);
+    const { data, error } = await U.client.from('projects').upsert(row).select('*').single();
     expect(error).toBeNull();
     expect(data.name).toBe('Renomeado');
+  });
+
+  it('inserts concorrentes não ultrapassam o limite do plano', async () => {
+    const { U, w } = await userWithNineProjects('cons-race');
+    const results = await Promise.all(
+      [1, 2, 3].map((n) =>
+        U.client.from('projects').insert({ workspace_id: w.id, name: `Corrida ${n}` }),
+      ),
+    );
+    const ok = results.filter((r) => !r.error);
+    const failed = results.filter((r) => r.error);
+    expect(ok).toHaveLength(1);
+    expect(failed).toHaveLength(2);
+    for (const r of failed) expect(r.error.message).toContain('plan_limit_projects');
+    const { count } = await adminClient()
+      .from('projects')
+      .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', w.id);
+    expect(count).toBe(10);
   });
 });
