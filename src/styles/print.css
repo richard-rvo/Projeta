@@ -338,8 +338,9 @@
 
   .minute-print li,
   .minute-print p,
-  .minute-print [data-type='actionItem'],
+  .minute-print .minute-action,
   .minute-print [data-type='decision'],
+  .minute-print .minute-decision,
   .minute-print thead,
   .minute-print tr {
     break-inside: avoid;
@@ -357,7 +358,7 @@
   .minute-print textarea,
   .minute-print [role='menu'],
   .minute-print [role='listbox'],
-  .minute-print [data-slash-menu] {
+  .minute-print .minute-action__placeholder {
     display: none !important;
   }
 
