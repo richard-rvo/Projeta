@@ -25,3 +25,6 @@ dist-ssr
 
 # Isolated worktrees for parallel work
 .worktrees/
+
+# Supabase CLI local state
+supabase/.temp/

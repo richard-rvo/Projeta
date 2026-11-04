@@ -65,5 +65,8 @@ export default defineConfig(({ mode }) => {
   build: {
     outDir: 'dist',
   },
+  test: {
+    exclude: ['node_modules/**', 'dist/**', 'tests/rls/**', '.worktrees/**', '.superpowers/**'],
+  },
   };
 });
