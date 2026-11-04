@@ -5,7 +5,7 @@ import {
   deleteProject as dbDeleteProject, saveTask as dbSaveTask,
   deleteTask as dbDeleteTask, saveAnomaly as dbSaveAnomaly,
   deleteAnomaly as dbDeleteAnomaly, updateWorkspace as dbUpdateWorkspace,
-  verifyWorkspaceData,
+  verifyWorkspaceData, friendlyDbError,
 } from '../utils/supabaseRepository';
 
 const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
@@ -293,7 +293,7 @@ function reducer(state, action) {
 export const AppContext = createContext();
 
 function saveErrorMessage(error) {
-  return error?.message || 'Não foi possível gravar no workspace Supabase.';
+  return friendlyDbError(error);
 }
 
 function orderById(list) {
