@@ -107,9 +107,10 @@ export async function loadMinute(id) {
 }
 
 export async function saveMinute(minute, workspaceId) {
-  const result = await requireClient().rpc('save_meeting_minute', minuteToRpcArgs(minute, workspaceId))
-  throwIfError(result)
-  return loadMinute(minute.id)
+  const result = await requireClient()
+    .rpc('save_meeting_minute', minuteToRpcArgs(minute, workspaceId))
+    .single()
+  return minuteFromRow(throwIfError(result))
 }
 
 export async function deleteMinute(id) {

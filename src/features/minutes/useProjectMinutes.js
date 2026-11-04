@@ -133,6 +133,8 @@ export function useProjectMinutes(projectId) {
     async (id) => {
       try {
         if (activeRef.current?.id === id) {
+          // Descarta o save pendente (inclusive um que falhou) para não ressuscitar a ata.
+          autosaverRef.current.discard()
           await autosaverRef.current.flush()
           activeRef.current = null
           setActiveMinute(null)
