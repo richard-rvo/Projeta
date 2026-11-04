@@ -10,7 +10,7 @@
 
      theme      → tokens do Tailwind
      base       → preflight + nossos padrões de elemento
-     components → CSS semântico das views (o miolo do Gantt)
+     components → CSS semântico das views (o miolo do Gantt, o editor de atas)
      utilities  → sempre por último, sempre vence
 
    Custom properties e :root ficam FORA de camada em tokens.css:
@@ -23,6 +23,7 @@
 @import './styles/tokens.css';
 @import './styles/base.css';
 @import './styles/views/gantt.css';
+@import './styles/views/minutes.css';
 
 /* Por último: a impressão precisa vencer tudo. */
 @import './styles/print.css';
