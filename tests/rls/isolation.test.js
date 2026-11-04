@@ -32,6 +32,14 @@ describe('isolamento entre tenants', () => {
 
   afterAll(cleanupTestUsers);
 
+  it('A lê os próprios dados (controle positivo)', async () => {
+    for (const t of TABLES) {
+      const { data, error } = await A.client.from(t).select('id').eq('id', ids[t]);
+      expect(error).toBeNull();
+      expect(data).toHaveLength(1);
+    }
+  });
+
   it('B não lê projetos, tarefas nem anomalias de A', async () => {
     for (const t of TABLES) {
       const { data, error } = await B.client.from(t).select('*').eq('id', ids[t]);
@@ -44,8 +52,10 @@ describe('isolamento entre tenants', () => {
     for (const t of TABLES) {
       const col = t === 'anomalies' ? 'title' : 'name';
       const upd = await B.client.from(t).update({ [col]: 'x' }).eq('id', ids[t]).select();
+      expect(upd.error).toBeNull();
       expect(upd.data).toEqual([]);
       const del = await B.client.from(t).delete().eq('id', ids[t]).select();
+      expect(del.error).toBeNull();
       expect(del.data).toEqual([]);
       const { data } = await admin.from(t).select('*').eq('id', ids[t]).single();
       expect(data).toBeTruthy();
@@ -61,7 +71,13 @@ describe('isolamento entre tenants', () => {
   });
 
   it('anon não lê nada', async () => {
-    const { data, error } = await anonClient().from('projects').select('*');
+    const { count, error: adminErr } = await admin
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .eq('id', ids.projects);
+    expect(adminErr).toBeNull();
+    expect(count).toBeGreaterThanOrEqual(1);
+    const { data, error } = await anonClient().from('projects').select('*').eq('id', ids.projects);
     expect(error).toBeNull();
     expect(data).toEqual([]);
   });
