@@ -121,6 +121,8 @@ export function useProjectMinutes(projectId) {
     [flushOrFail, projectId, refreshList],
   )
 
+  const retrySave = useCallback(() => autosaverRef.current.flush(), [])
+
   const updateActiveMinute = useCallback((patch) => {
     if (!activeRef.current) return
     const next = { ...activeRef.current, ...patch }
@@ -158,6 +160,7 @@ export function useProjectMinutes(projectId) {
     createMinute,
     updateActiveMinute,
     removeMinute,
+    retrySave,
     saveStatus,
     error,
   }
