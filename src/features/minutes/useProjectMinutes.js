@@ -13,6 +13,8 @@ export function useProjectMinutes(projectId) {
   const [activeMinute, setActiveMinute] = useState(null)
   const [saveStatus, setSaveStatus] = useState('idle')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const listRequest = useRef(0)
 
   const activeRef = useRef(null)
   const queryRef = useRef(query)
@@ -23,10 +25,14 @@ export function useProjectMinutes(projectId) {
   workspaceRef.current = workspaceId
 
   const refreshList = useCallback(async () => {
+    const request = ++listRequest.current
     try {
-      setMinutes(await listMinutes(projectId, queryRef.current))
+      const list = await listMinutes(projectId, queryRef.current)
+      if (request === listRequest.current) setMinutes(list)
     } catch (e) {
       setError(friendlyDbError(e))
+    } finally {
+      if (request === listRequest.current) setLoading(false)
     }
   }, [projectId])
 
@@ -49,6 +55,7 @@ export function useProjectMinutes(projectId) {
     })
 
   useEffect(() => {
+    setLoading(true)
     const id = setTimeout(refreshList, query ? 250 : 0)
     return () => clearTimeout(id)
   }, [refreshList, query])
@@ -121,6 +128,8 @@ export function useProjectMinutes(projectId) {
     [flushOrFail, projectId, refreshList],
   )
 
+  const retrySave = useCallback(() => autosaverRef.current.flush(), [])
+
   const updateActiveMinute = useCallback((patch) => {
     if (!activeRef.current) return
     const next = { ...activeRef.current, ...patch }
@@ -158,7 +167,9 @@ export function useProjectMinutes(projectId) {
     createMinute,
     updateActiveMinute,
     removeMinute,
+    retrySave,
     saveStatus,
+    loading,
     error,
   }
 }
