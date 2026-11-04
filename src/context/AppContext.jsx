@@ -42,6 +42,7 @@ const initialState = {
      para a sessão, como em qualquer editor. */
   history: { past: [], future: [] },
   inspectorTaskId: null,
+  focusMinuteId: null,            // ata a abrir ao entrar na aba Atas (sem router, Fase 2 troca por URL)
   isCommandPaletteOpen: false,
 };
 
@@ -75,6 +76,8 @@ export const ACTIONS = {
   UNDO: 'UNDO',
   REDO: 'REDO',
   SET_INSPECTOR_TASK: 'SET_INSPECTOR_TASK',
+  OPEN_MINUTE: 'OPEN_MINUTE',
+  CLEAR_FOCUS_MINUTE: 'CLEAR_FOCUS_MINUTE',
   TOGGLE_COMMAND_PALETTE: 'TOGGLE_COMMAND_PALETTE',
   SAVE_STARTED: 'SAVE_STARTED',
   SAVE_SUCCEEDED: 'SAVE_SUCCEEDED',
@@ -85,7 +88,7 @@ export const ACTIONS = {
 };
 
 /* ── reducer ────────────────────────────────────────────────── */
-function reducer(state, action) {
+export function reducer(state, action) {
   switch (action.type) {
     case ACTIONS.SET_PROJECTS:
       return { ...state, projects: action.payload };
@@ -223,6 +226,10 @@ function reducer(state, action) {
         },
       };
     }
+    case ACTIONS.OPEN_MINUTE:
+      return { ...state, focusMinuteId: action.payload, activeProjectTab: 'minutes' };
+    case ACTIONS.CLEAR_FOCUS_MINUTE:
+      return { ...state, focusMinuteId: null };
     case ACTIONS.SET_INSPECTOR_TASK:
       return { ...state, inspectorTaskId: action.payload };
     case ACTIONS.TOGGLE_COMMAND_PALETTE:
@@ -594,6 +601,14 @@ export function AppProvider({ children }) {
     dispatch({ type: ACTIONS.SET_ACTIVE_PROJECT_TAB, payload: tab });
   }, []);
 
+  const openMinuteFromOverview = useCallback((minuteId) => {
+    dispatch({ type: ACTIONS.OPEN_MINUTE, payload: minuteId });
+  }, []);
+
+  const clearFocusMinute = useCallback(() => {
+    dispatch({ type: ACTIONS.CLEAR_FOCUS_MINUTE });
+  }, []);
+
   const showToast = useCallback((message, type = 'info') => {
     dispatch({ type: ACTIONS.SET_TOAST, payload: { message, type } });
   }, []);
@@ -684,6 +699,8 @@ export function AppProvider({ children }) {
     navigate,
     selectProject,
     setProjectTab,
+    openMinuteFromOverview,
+    clearFocusMinute,
     showToast,
     openTaskInspector,
     closeTaskInspector,

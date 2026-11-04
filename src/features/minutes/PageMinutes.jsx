@@ -1,5 +1,5 @@
-import { useContext, useEffect, useState } from 'react'
-import { ArrowLeft, Search } from 'lucide-react'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, ListChecks, Printer, Search } from 'lucide-react'
 import { AppContext } from '../../context/AppContext'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import ViewBar, { ViewBarButton, ViewBarSpacer } from '../../components/shell/ViewBar'
@@ -9,6 +9,10 @@ import MinuteEditor from './editor/MinuteEditor'
 import MinuteHeader from './MinuteHeader'
 import MinuteList from './MinuteList'
 import NewMinuteMenu from './NewMinuteMenu'
+import { MinuteActionsDock, useWideScreen } from './MinuteActionsPanel'
+import { useMinuteActions } from './useMinuteActions'
+import { extractActions } from './minuteDoc'
+import { MinutePrintPreview } from './MinutePrintSheet'
 
 const SAVE_LABEL = { pending: 'Salvando…', saving: 'Salvando…', saved: 'Salvo' }
 
@@ -27,15 +31,28 @@ function SaveIndicator({ status, onRetry }) {
 }
 
 export default function PageMinutes() {
-  const { state, showToast, openTaskInspector } = useContext(AppContext)
+  const { state, showToast, openTaskInspector, clearFocusMinute } = useContext(AppContext)
   const {
     minutes, setQuery, activeMinute, openMinute, createMinute,
-    updateActiveMinute, removeMinute, retrySave, saveStatus, loading, error,
+    updateActiveMinute, removeMinute, retrySave, flushNow, saveStatus, loading, error,
   } = useProjectMinutes(state.activeProjectId)
 
   const [search, setSearch] = useState('')
   const [showList, setShowList] = useState(true)
   const [toDelete, setToDelete] = useState(null)
+  const [previewing, setPreviewing] = useState(false)
+  const wide = useWideScreen()
+  const [panelOpen, setPanelOpen] = useState(wide)
+  const { createTask, setActionStatus } = useMinuteActions(activeMinute, updateActiveMinute)
+  const actions = useMemo(() => (activeMinute ? extractActions(activeMinute.content) : []), [activeMinute])
+
+  // Vindo da Visão Geral: abre a ata pedida uma única vez (Fase 2 troca por URL).
+  const focusMinuteId = state.focusMinuteId
+  useEffect(() => {
+    if (!focusMinuteId) return
+    clearFocusMinute()
+    openMinute(focusMinuteId).then(() => setShowList(false))
+  }, [focusMinuteId, clearFocusMinute, openMinute])
 
   useEffect(() => {
     const id = setTimeout(() => setQuery(search), 300)
@@ -53,13 +70,28 @@ export default function PageMinutes() {
     removeMinute(toDelete.id)
     if (toDelete.id === activeMinute?.id) setShowList(true)
   }
-  const createTaskSoon = () => showToast('Converter ação em tarefa chega na próxima versão.', 'info')
+
+  // Grava o pendente antes de montar a folha; se o save falhou, fica na edição.
+  const startPreview = async () => {
+    if (await flushNow()) setPreviewing(true)
+  }
+  const projectName = state.projects?.find((p) => p.id === state.activeProjectId)?.name || ''
 
   const noMinutes = !minutes.length && !search && !activeMinute
   // Sem ata aberta, a lista é o único painel útil no celular.
   const listVisible = showList || !activeMinute
   const contentError = () =>
     showToast('Esta ata não pôde ser aberta para edição. Recarregue a página.', 'error')
+
+  if (previewing && activeMinute) {
+    return (
+      <MinutePrintPreview
+        minute={activeMinute}
+        projectName={projectName}
+        onBack={() => setPreviewing(false)}
+      />
+    )
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -76,6 +108,20 @@ export default function PageMinutes() {
           />
         </div>
         <ViewBarSpacer />
+        {activeMinute && (
+          <ViewBarButton
+            icon={ListChecks}
+            active={panelOpen}
+            aria-expanded={panelOpen}
+            aria-label="Ações da ata"
+            onClick={() => setPanelOpen((v) => !v)}
+          >
+            Ações
+          </ViewBarButton>
+        )}
+        <ViewBarButton icon={Printer} disabled={!activeMinute} onClick={startPreview}>
+          Imprimir / PDF
+        </ViewBarButton>
         <SaveIndicator status={saveStatus} onRetry={retrySave} />
         <NewMinuteMenu onCreate={create} />
       </ViewBar>
@@ -104,7 +150,7 @@ export default function PageMinutes() {
                   key={activeMinute.id}
                   content={activeMinute.content}
                   onChange={(content) => updateActiveMinute({ content })}
-                  onCreateTask={createTaskSoon}
+                  onCreateTask={createTask}
                   onContentError={contentError}
                   onOpenTask={openTaskInspector}
                 />
@@ -113,6 +159,17 @@ export default function PageMinutes() {
               <p className="p-6 text-small text-text-3">Selecione uma ata para ler ou editar.</p>
             )}
           </main>
+          {activeMinute && (
+            <MinuteActionsDock
+              open={panelOpen}
+              onOpenChange={setPanelOpen}
+              wide={wide}
+              actions={actions}
+              onCreateTask={createTask}
+              onViewTask={openTaskInspector}
+              onStatusChange={setActionStatus}
+            />
+          )}
         </div>
       )}
 

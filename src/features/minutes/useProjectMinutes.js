@@ -128,6 +128,9 @@ export function useProjectMinutes(projectId) {
     [flushOrFail, projectId, refreshList],
   )
 
+  // Grava o que estiver pendente; false se o save falhou (ex.: antes de imprimir).
+  const flushNow = flushOrFail
+
   const retrySave = useCallback(() => autosaverRef.current.flush(), [])
 
   const updateActiveMinute = useCallback((patch) => {
@@ -168,6 +171,7 @@ export function useProjectMinutes(projectId) {
     updateActiveMinute,
     removeMinute,
     retrySave,
+    flushNow,
     saveStatus,
     loading,
     error,

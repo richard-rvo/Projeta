@@ -6,6 +6,7 @@ import {
   updateActionInDoc,
   dedupeActionIds,
   isActionOverdue,
+  clearMissingTaskLinks,
 } from './minuteDoc'
 import { MINUTE_TEMPLATES } from './templates'
 
@@ -117,5 +118,26 @@ describe('templates', () => {
       expect(m.doc.type).toBe('doc')
       expect(() => extractActions(m.doc)).not.toThrow()
     }
+  })
+})
+
+describe('clearMissingTaskLinks', () => {
+  const doc = () => ({
+    type: 'doc',
+    content: [action('a1', 'X', { taskId: 't1' }), action('a2', 'Y', { taskId: 't2' }), action('a3', 'Z')],
+  })
+
+  it('zera taskId de tarefas inexistentes sem mutar o original', () => {
+    const d = doc()
+    const next = clearMissingTaskLinks(d, new Set(['t1']))
+    expect(next).not.toBe(d)
+    expect(next.content[0].attrs.taskId).toBe('t1')
+    expect(next.content[1].attrs.taskId).toBeNull()
+    expect(d.content[1].attrs.taskId).toBe('t2')
+  })
+
+  it('devolve a mesma referência quando nada muda', () => {
+    const d = doc()
+    expect(clearMissingTaskLinks(d, new Set(['t1', 't2']))).toBe(d)
   })
 })
