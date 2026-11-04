@@ -12,13 +12,14 @@ import {
   formatDateTimeShort, clampProgress, isManual, SCHEDULE_MODES, CONSTRAINT_NONE,
 } from '../../utils/schedule';
 import {
-  calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf, durationInputUnitOf, rebaseTaskCalendar, workdayStart, workdayEnd,
+  calendarOf, calendarsOf, defaultCalendarOf, durationDisplayOf, durationInputUnitOf, rebaseTaskCalendar, workdayEnd,
 } from '../../utils/calendar';
 import {
   addWorkingMinutes, workingMinutesBetween, snapForward, snapBackward, minutesPerDay,
 } from '../../utils/worktime';
 import { formatDuration, resolveDuration } from '../../utils/duration';
 import { generateId } from '../../utils/ids';
+import { buildNewTask } from '../../utils/taskFactory';
 import { calculateTaskPlannedProgress } from '../../utils/progress';
 import {
   ZOOM_LEVELS, COLUMNS,
@@ -1014,42 +1015,31 @@ export default function GanttView() {
   }, [gridWidth]);
 
   /* ── Ações ──────────────────────────────────────────────────── */
-  const buildNewTask = useCallback((name, order) => {
-    const start = workdayStart(projectCalendar, today());
-    return {
-      id: generateId(),
-      projectId: state.activeProjectId,
-      name,
-      startDate: start,
-      endDate: addWorkingMinutes(projectCalendar, start, 5 * minutesPerDay(projectCalendar)),
-      scheduleMode: SCHEDULE_MODES.AUTO,
-      progress: 0,
-      dependsOn: [],
-      indentLevel: 0,
-      order,
-    };
-  }, [projectCalendar, state.activeProjectId]);
+  const buildTask = useCallback(
+    (name, order) => buildNewTask(activeProject, { name, order }),
+    [activeProject]
+  );
 
   const handleAddTask = useCallback(async (e) => {
     if (e.key !== 'Enter' || !newTaskName.trim()) return;
     /* Nasce AUTOMÁTICA e com jornada: começa na abertura do próximo
        dia útil e dura 5 dias do calendário padrão do projeto. */
-    await addTask(buildNewTask(newTaskName.trim(), tasks.length));
+    await addTask(buildTask(newTaskName.trim(), tasks.length));
     setNewTaskName('');
     setTimeout(() => newTaskRef.current?.focus(), 40);
-  }, [newTaskName, tasks.length, addTask, buildNewTask]);
+  }, [newTaskName, tasks.length, addTask, buildTask]);
 
   const handlePasteNewTasks = useCallback(async (e) => {
     const names = taskNamesFromPaste(e.clipboardData?.getData('text/plain'));
     if (names.length < 2) return;
 
     e.preventDefault();
-    const inserted = names.map((name, index) => buildNewTask(name, tasks.length + index));
+    const inserted = names.map((name, index) => buildTask(name, tasks.length + index));
     await addTasks(inserted);
     setNewTaskName('');
     setTimeout(() => newTaskRef.current?.focus(), 40);
     showToast(`${inserted.length} tarefas adicionadas`, 'success');
-  }, [addTasks, buildNewTask, showToast, tasks.length]);
+  }, [addTasks, buildTask, showToast, tasks.length]);
 
   /* Gravar a linha de base era um tiro só: carimbava o projeto inteiro,
      sem como limpar, sem como restringir à seleção e sem como ocultar.

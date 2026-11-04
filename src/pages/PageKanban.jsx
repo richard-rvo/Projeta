@@ -1,15 +1,13 @@
 import React, { useContext, useMemo, useState } from 'react';
 import { AppContext } from '../context/AppContext';
-import { generateId } from '../utils/ids';
+import { buildNewTask } from '../utils/taskFactory';
 import { cn } from '@/lib/utils';
 import ViewBar, { ViewBarButton } from '../components/shell/ViewBar';
 import { Plus, Columns3, CalendarDays, Users } from 'lucide-react';
 import {
   STAGES, stageOf, isLate, lateDays, progressForStage, viewProgress, leaves,
 } from '../utils/taskState';
-import { today, formatDateShort, SCHEDULE_MODES } from '../utils/schedule';
-import { defaultCalendarOf, workdayStart } from '../utils/calendar';
-import { addWorkingMinutes, minutesPerDay } from '../utils/worktime';
+import { formatDateShort } from '../utils/schedule';
 
 /* ═══════════════════════════════════════════════════════════════
    QUADRO
@@ -72,15 +70,10 @@ export default function PageKanban() {
   const addTo = async (stageId) => {
     /* Nasce com jornada e no calendário padrão do projeto — as três
        telas que criam tarefa precisam concordar no formato. */
-    const cal = defaultCalendarOf(state.projects.find((p) => p.id === projectId));
-    const start = workdayStart(cal, today());
+    const project = state.projects.find((p) => p.id === projectId);
     const task = {
-      id: generateId(), projectId, name: 'Nova tarefa',
-      startDate: start,
-      endDate: addWorkingMinutes(cal, start, 5 * minutesPerDay(cal)),
-      scheduleMode: SCHEDULE_MODES.AUTO,
+      ...buildNewTask(project, { name: 'Nova tarefa', order: tasks.length }),
       progress: progressForStage(stageId, 0),
-      dependsOn: [], indentLevel: 0, order: tasks.length,
     };
     await addTask(task);
     openTaskInspector(task.id);
