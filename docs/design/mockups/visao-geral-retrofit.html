@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visão Geral — Projeta</title>
+<meta name="description" content="Mockup estático do Projeta para aprovação de design. Dados de exemplo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Inter:wght@400..700&display=swap">
+<script>
+(function(){var t=new URLSearchParams(location.search).get('theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}})();
+</script>
+<style>
+
+:root {
+  color-scheme: light;
+  --surface-0: oklch(0.965 0.004 95);
+  --surface-1: oklch(0.995 0.002 95);
+  --surface-2: oklch(0.982 0.003 95);
+  --surface-3: oklch(0.942 0.006 95);
+  --surface-inset: oklch(0.918 0.008 95);
+  --text-1: oklch(0.205 0.008 75);
+  --text-2: oklch(0.455 0.009 75);
+  --text-3: oklch(0.63 0.008 75);
+  --text-on-accent: oklch(1 0 0);
+  --line-hairline: oklch(0.205 0.008 75 / 0.10);
+  --line-strong: oklch(0.205 0.008 75 / 0.18);
+  --sched-not-started: oklch(0.655 0.021 265);
+  --sched-on-track: oklch(0.600 0.140 250);
+  --sched-at-risk: oklch(0.720 0.150 75);
+  --sched-late: oklch(0.585 0.200 25);
+  --sched-done: oklch(0.620 0.135 155);
+  --sched-critical: oklch(0.520 0.235 15);
+  --sched-baseline: oklch(0.700 0.028 265);
+  --sched-slack: oklch(0.780 0.045 250);
+  --gantt-weekend: oklch(0.22 0.01 265 / 0.045);
+  --sched-not-started-soft: oklch(0.655 0.021 265 / 0.13);
+  --sched-on-track-soft: oklch(0.600 0.140 250 / 0.13);
+  --sched-at-risk-soft: oklch(0.720 0.150 75 / 0.16);
+  --sched-late-soft: oklch(0.585 0.200 25 / 0.13);
+  --sched-done-soft: oklch(0.620 0.135 155 / 0.14);
+  --sched-critical-soft: oklch(0.520 0.235 15 / 0.13);
+  --brand: #ff6a00;
+  --brand-hover: #e85e00;
+  --brand-soft: oklch(0.70 0.18 55 / 0.13);
+  --elev-1: 0 1px 2px oklch(0.22 0.011 265 / 0.06);
+  --elev-2: 0 1px 2px oklch(0.22 0.011 265 / 0.05), 0 5px 16px oklch(0.22 0.011 265 / 0.06);
+  --elev-3: 0 4px 8px oklch(0.22 0.011 265 / 0.07), 0 12px 28px oklch(0.22 0.011 265 / 0.08);
+  --elev-4: 0 8px 16px oklch(0.22 0.011 265 / 0.08), 0 24px 56px oklch(0.22 0.011 265 / 0.12);
+  --overlay-scrim: oklch(0.22 0.011 265 / 0.28);
+  --overlay-material: oklch(1 0 0 / 0.78);
+  --focus-ring: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--brand);
+  /* NOVO: tinta da quadrícula da prancheta */
+  --grid-ink: oklch(0.205 0.008 75 / 0.045);
+  --brand-gradient: linear-gradient(90deg, #ff7d22 0%, #ff6a00 100%);
+  /* NOVO: tinta sobre o laranja. Branco dá 2,87:1 (reprova); grafite dá 6,06:1. */
+  --text-on-brand: oklch(0.205 0.008 75);
+
+  /* Raio: só quatro valores */
+  --radius-xs: 6px;
+  --radius-control: 9px;
+  --radius-card: 12px;
+  --radius-sheet: 16px;
+
+  /* Espaço: só 4 / 8 / 12 / 16 / 24 / 32 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Tipo: escala fixa 11 / 12 / 13 / 15 / 19 / 28 */
+  --text-micro: 0.6875rem;
+  --text-small: 0.75rem;
+  --text-body: 0.8125rem;
+  --text-read: 0.9375rem;
+  --text-title: 1.1875rem;
+  --text-display: 1.75rem;
+
+  /* Proposta: Archivo só em títulos e números de KPI; Inter no corpo e na grade */
+  --font-display: 'Archivo', 'Archivo Narrow', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-ui: 'Inter', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --rail-w: 64px;
+  --topbar-h: 52px;
+  --control-h: 32px;
+  --control-h-sm: 26px;
+
+  /* Séries da Curva S (validadas com o script do dataviz, ver relatório) */
+  --series-planned: var(--sched-baseline);
+  --series-replanned: var(--text-2);
+  --series-actual: var(--brand);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --surface-0: oklch(0.155 0.005 75);
+  --surface-1: oklch(0.205 0.006 75);
+  --surface-2: oklch(0.245 0.007 75);
+  --surface-3: oklch(0.285 0.008 75);
+  --surface-inset: oklch(0.125 0.005 75);
+  --text-1: oklch(0.955 0.004 265);
+  --text-2: oklch(0.725 0.009 265);
+  --text-3: oklch(0.560 0.011 265);
+  --line-hairline: oklch(1 0 0 / 0.09);
+  --line-strong: oklch(1 0 0 / 0.17);
+  --sched-not-started: oklch(0.640 0.022 265);
+  --sched-on-track: oklch(0.685 0.135 250);
+  --sched-at-risk: oklch(0.780 0.145 75);
+  --sched-late: oklch(0.660 0.185 25);
+  --sched-done: oklch(0.700 0.130 155);
+  --sched-critical: oklch(0.620 0.215 18);
+  --sched-baseline: oklch(0.470 0.022 265);
+  --sched-slack: oklch(0.430 0.040 250);
+  --gantt-weekend: oklch(1 0 0 / 0.035);
+  --sched-not-started-soft: oklch(0.640 0.022 265 / 0.20);
+  --sched-on-track-soft: oklch(0.685 0.135 250 / 0.20);
+  --sched-at-risk-soft: oklch(0.780 0.145 75 / 0.20);
+  --sched-late-soft: oklch(0.660 0.185 25 / 0.20);
+  --sched-done-soft: oklch(0.700 0.130 155 / 0.20);
+  --sched-critical-soft: oklch(0.620 0.215 18 / 0.22);
+  --brand: #ff8a3d;
+  --brand-hover: #ffa266;
+  --brand-soft: oklch(0.72 0.17 55 / 0.18);
+  --elev-1: 0 1px 2px oklch(0 0 0 / 0.40);
+  --elev-2: 0 2px 4px oklch(0 0 0 / 0.40), 0 4px 12px oklch(0 0 0 / 0.34);
+  --elev-3: 0 4px 8px oklch(0 0 0 / 0.44), 0 12px 28px oklch(0 0 0 / 0.40);
+  --elev-4: 0 8px 16px oklch(0 0 0 / 0.48), 0 24px 56px oklch(0 0 0 / 0.52);
+  --overlay-scrim: oklch(0 0 0 / 0.55);
+  --overlay-material: oklch(0.212 0.009 265 / 0.80);
+  --focus-ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--brand);
+  --grid-ink: oklch(1 0 0 / 0.035);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: oklch(0.155 0.005 75);
+  --surface-1: oklch(0.205 0.006 75);
+  --surface-2: oklch(0.245 0.007 75);
+  --surface-3: oklch(0.285 0.008 75);
+  --surface-inset: oklch(0.125 0.005 75);
+  --text-1: oklch(0.955 0.004 265);
+  --text-2: oklch(0.725 0.009 265);
+  --text-3: oklch(0.560 0.011 265);
+  --line-hairline: oklch(1 0 0 / 0.09);
+  --line-strong: oklch(1 0 0 / 0.17);
+  --sched-not-started: oklch(0.640 0.022 265);
+  --sched-on-track: oklch(0.685 0.135 250);
+  --sched-at-risk: oklch(0.780 0.145 75);
+  --sched-late: oklch(0.660 0.185 25);
+  --sched-done: oklch(0.700 0.130 155);
+  --sched-critical: oklch(0.620 0.215 18);
+  --sched-baseline: oklch(0.470 0.022 265);
+  --sched-slack: oklch(0.430 0.040 250);
+  --gantt-weekend: oklch(1 0 0 / 0.035);
+  --sched-not-started-soft: oklch(0.640 0.022 265 / 0.20);
+  --sched-on-track-soft: oklch(0.685 0.135 250 / 0.20);
+  --sched-at-risk-soft: oklch(0.780 0.145 75 / 0.20);
+  --sched-late-soft: oklch(0.660 0.185 25 / 0.20);
+  --sched-done-soft: oklch(0.700 0.130 155 / 0.20);
+  --sched-critical-soft: oklch(0.620 0.215 18 / 0.22);
+  --brand: #ff8a3d;
+  --brand-hover: #ffa266;
+  --brand-soft: oklch(0.72 0.17 55 / 0.18);
+  --elev-1: 0 1px 2px oklch(0 0 0 / 0.40);
+  --elev-2: 0 2px 4px oklch(0 0 0 / 0.40), 0 4px 12px oklch(0 0 0 / 0.34);
+  --elev-3: 0 4px 8px oklch(0 0 0 / 0.44), 0 12px 28px oklch(0 0 0 / 0.40);
+  --elev-4: 0 8px 16px oklch(0 0 0 / 0.48), 0 24px 56px oklch(0 0 0 / 0.52);
+  --overlay-scrim: oklch(0 0 0 / 0.55);
+  --overlay-material: oklch(0.212 0.009 265 / 0.80);
+  --focus-ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--brand);
+  --grid-ink: oklch(1 0 0 / 0.035);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font: 400 var(--text-body)/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0; }
+ul, ol { padding: 0; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+svg { display: block; }
+.num { font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+:focus { outline: none; }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.icon { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.icon--sm { width: 14px; height: 14px; }
+
+/* Label (micro, caixa alta): o único rótulo de campo do sistema */
+.label {
+  font: 600 var(--text-micro)/1.2 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* ── Button ───────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  height: var(--control-h); padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  background: var(--surface-1); color: var(--text-1);
+  font: 500 var(--text-body)/1 var(--font-ui); white-space: nowrap; text-decoration: none;
+  transition: background var(--dur-1) var(--ease-standard), border-color var(--dur-1) var(--ease-standard);
+}
+.btn:hover { background: var(--surface-3); }
+.btn--primary { background: var(--brand); border-color: transparent; color: var(--text-on-brand); font-weight: 600; }
+.btn--primary:hover { background: var(--brand-hover); }
+.btn--ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+.btn--ghost:hover { background: var(--surface-3); color: var(--text-1); }
+.btn--sm { height: var(--control-h-sm); padding: 0 var(--space-2); font-size: var(--text-small); }
+.btn--block { width: 100%; }
+
+/* ── Panel + SectionHeader ────────────────────────────── */
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--line-hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  min-width: 0;
+}
+.section-header { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin-bottom: var(--space-3); min-width: 0; }
+.section-header__index { font: 600 var(--text-micro)/1 var(--font-ui); color: var(--text-2); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.section-header__title { font: 600 var(--text-read)/1.25 var(--font-display); font-stretch: 96%; letter-spacing: -0.005em; color: var(--text-1); }
+.section-header__hint { font-size: var(--text-small); color: var(--text-2); }
+.section-header__action {
+  margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-xs);
+  font: 500 var(--text-small)/1.2 var(--font-ui); color: var(--text-2); text-decoration: none; white-space: nowrap;
+}
+.section-header__action:hover { background: var(--surface-3); color: var(--text-1); }
+
+/* ── StatusPill (rótulo em tinta de texto + ponto na cor do estado) ── */
+.pill {
+  --pill: var(--sched-not-started); --pill-soft: var(--sched-not-started-soft);
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  height: 20px; padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--pill-soft); color: var(--text-1);
+  font: 500 var(--text-micro)/1 var(--font-ui); white-space: nowrap;
+}
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pill); flex: none; }
+.pill[data-state="on-track"] { --pill: var(--sched-on-track); --pill-soft: var(--sched-on-track-soft); }
+.pill[data-state="at-risk"]  { --pill: var(--sched-at-risk);  --pill-soft: var(--sched-at-risk-soft); }
+.pill[data-state="late"]     { --pill: var(--sched-late);     --pill-soft: var(--sched-late-soft); }
+.pill[data-state="done"]     { --pill: var(--sched-done);     --pill-soft: var(--sched-done-soft); }
+.pill[data-state="critical"] { --pill: var(--sched-critical); --pill-soft: var(--sched-critical-soft); }
+
+/* ── Chip (responsável, prazo) ────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  height: 22px; padding: 0 var(--space-2) 0 var(--space-1);
+  border: 1px solid var(--line-hairline); border-radius: var(--radius-xs);
+  background: var(--surface-2); color: var(--text-1);
+  font: 500 var(--text-small)/1 var(--font-ui); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.chip .icon { width: 12px; height: 12px; color: var(--text-2); margin-left: 2px; }
+.chip--late { border-color: var(--sched-late); background: var(--surface-1); color: var(--sched-late); font-weight: 600; }
+.chip--late .icon { color: var(--sched-late); }
+.avatar {
+  display: inline-grid; place-items: center; flex: none;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--surface-inset); color: var(--text-1);
+  font: 600 var(--text-micro)/1 var(--font-ui); letter-spacing: 0.02em;
+}
+
+/* ── KpiTile (uma só) ─────────────────────────────────── */
+.kpi-strip {
+  display: grid; grid-template-columns: repeat(var(--kpi-cols, 6), minmax(0, 1fr));
+  gap: 1px; background: var(--line-hairline);
+  border: 1px solid var(--line-hairline); border-radius: var(--radius-card); overflow: hidden;
+}
+.kpi { background: var(--surface-1); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.kpi__value {
+  font: 600 var(--text-display)/1.1 var(--font-display); font-stretch: 92%;
+  letter-spacing: -0.01em; color: var(--text-1); white-space: nowrap;
+}
+.kpi__value small { font: 500 var(--text-read)/1 var(--font-display); font-stretch: 92%; color: var(--text-2); margin-left: 2px; letter-spacing: 0; }
+.kpi__value[data-tone="late"] { color: var(--sched-late); }
+.kpi__foot { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-2); font-size: var(--text-small); color: var(--text-2); min-height: 20px; }
+.progress { height: 4px; background: var(--surface-inset); overflow: hidden; flex: 1; min-width: 48px; }
+.progress > span { display: block; height: 100%; background: var(--brand); }
+
+/* ── Carimbo (PageHeader como bloco de título) ────────── */
+.carimbo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(160px, max-content));
+  gap: 1px; background: var(--line-hairline);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-card); overflow: hidden;
+}
+.carimbo__title {
+  grid-row: 1 / span 2; background-color: var(--surface-1);
+  background-image:
+    linear-gradient(var(--grid-ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+  background-size: 16px 16px;
+  padding: var(--space-4) var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-1); min-width: 0;
+}
+.carimbo__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.carimbo__actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.carimbo h1 {
+  font: 650 var(--text-display)/1.1 var(--font-display); font-stretch: 88%;
+  letter-spacing: -0.015em; color: var(--text-1); margin-top: var(--space-1);
+}
+.carimbo__sub { font-size: var(--text-body); color: var(--text-2); }
+.carimbo__cell { background: var(--surface-1); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; justify-content: center; gap: var(--space-1); min-width: 0; }
+.carimbo__value { font: 500 var(--text-body)/1.35 var(--font-ui); color: var(--text-1); font-variant-numeric: tabular-nums; }
+.carimbo--compact .carimbo__title { padding-top: var(--space-3); padding-bottom: var(--space-3); }
+
+/* ── EmptyState ───────────────────────────────────────── */
+.empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-2);
+  padding: var(--space-5) var(--space-4); border-radius: var(--radius-control);
+  background: var(--surface-2); border: 1px solid var(--line-hairline);
+}
+.empty__icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--radius-control); background: var(--surface-1); border: 1px solid var(--line-hairline); color: var(--text-2); }
+.empty__title { font: 600 var(--text-body)/1.3 var(--font-ui); color: var(--text-1); }
+.empty__text { font-size: var(--text-small); color: var(--text-2); max-width: 36ch; }
+
+/* ── ActionRow (uma só: Visão Geral, Atas, painel de ações) ── */
+.arow { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: var(--space-2) var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--line-hairline); }
+.arow:last-child { border-bottom: 0; }
+.arow__check { width: 16px; height: 16px; margin-top: 2px; border-radius: 50%; border: 1.5px solid var(--text-2); background: transparent; padding: 0; display: grid; place-items: center; }
+.arow__check:hover { border-color: var(--text-1); }
+.arow__check .icon { width: 10px; height: 10px; stroke-width: 3; color: var(--surface-1); opacity: 0; }
+.arow.is-done .arow__check { background: var(--sched-done); border-color: var(--sched-done); }
+.arow.is-done .arow__check .icon { opacity: 1; }
+.arow__text { color: var(--text-1); font-size: var(--text-body); }
+.arow__carry { display: block; font-size: var(--text-small); color: var(--text-2); margin-top: 2px; }
+.arow.is-done .arow__text { color: var(--text-2); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.arow__meta { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.arow__src { font-size: var(--text-micro); color: var(--text-2); }
+.arow__link { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1); font: 500 var(--text-small)/1 var(--font-ui); color: var(--text-2); text-decoration: none; padding: var(--space-1); border-radius: var(--radius-xs); white-space: nowrap; }
+.arow__link:hover { color: var(--text-1); background: var(--surface-3); }
+.arow__link .icon { width: 12px; height: 12px; }
+.arow--compact .arow__link { margin-left: 0; }
+
+/* ── Legend (chave de linha para séries de linha) ─────── */
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); font-size: var(--text-small); color: var(--text-2); }
+.legend__item { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.legend__line { width: 16px; height: 0; border-top: 2px solid currentColor; }
+.legend__line--dash { border-top-style: dashed; }
+.legend__swatch { width: 10px; height: 10px; flex: none; }
+
+/* ── Curva S (SVG) ────────────────────────────────────── */
+.sc text { font-family: var(--font-ui); font-size: 11px; fill: var(--text-2); font-variant-numeric: tabular-nums; }
+.sc .t-strong { fill: var(--text-1); font-weight: 600; }
+.sc .t-row { fill: var(--text-2); font-weight: 500; }
+.sc .grid { stroke: var(--line-hairline); stroke-width: 1; shape-rendering: crispEdges; }
+.sc .axis { stroke: var(--line-strong); stroke-width: 1; shape-rendering: crispEdges; }
+.sc .forecast { fill: var(--surface-3); opacity: 0.7; }
+.sc .cut { stroke: var(--text-2); stroke-width: 1; shape-rendering: crispEdges; }
+.sc .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.sc .ln-planned { stroke: var(--series-planned); }
+.sc .ln-replanned { stroke: var(--series-replanned); }
+.sc .ln-actual { stroke: var(--series-actual); }
+.sc .ln-est { stroke-dasharray: 4 4; stroke-linecap: butt; }
+.sc .mk-actual { fill: var(--series-actual); stroke: var(--sc-surface, var(--surface-1)); stroke-width: 2; }
+.sc .mk-replanned { fill: var(--sc-surface, var(--surface-1)); stroke: var(--series-replanned); stroke-width: 2; }
+.sc .key-planned { stroke: var(--series-planned); stroke-width: 2; }
+.sc .key-replanned { stroke: var(--series-replanned); stroke-width: 2; }
+.sc .key-actual { stroke: var(--series-actual); stroke-width: 2; }
+.sc .rule { stroke: var(--line-hairline); stroke-width: 1; shape-rendering: crispEdges; }
+.sc .hover-line { stroke: var(--text-2); stroke-width: 1; shape-rendering: crispEdges; }
+.k-planned { color: var(--series-planned); }
+.k-replanned { color: var(--series-replanned); }
+.k-actual { color: var(--series-actual); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.reveal { animation: rise var(--dur-3) var(--ease-standard) both; animation-delay: calc(var(--i, 0) * 40ms); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  .pill::before, .progress > span { forced-color-adjust: none; }
+}
+
+
+
+.app { display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr); grid-template-rows: var(--topbar-h) auto; min-height: 100vh; min-height: 100dvh;
+  background: linear-gradient(90deg, var(--surface-1) 0 calc(var(--rail-w) - 1px), var(--line-hairline) calc(var(--rail-w) - 1px) var(--rail-w), transparent var(--rail-w)); }
+.rail {
+  grid-row: 1 / -1; position: sticky; top: 0; height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+  padding: var(--space-3) 0; background: var(--surface-1); border-right: 1px solid var(--line-hairline); z-index: 20;
+}
+.rail__logo { display: block; width: 36px; height: 36px; margin-bottom: var(--space-3); border-radius: var(--radius-control); }
+.rail__logo svg { width: 36px; height: 36px; }
+.rail__item {
+  position: relative; display: grid; place-items: center; width: 40px; height: 40px;
+  border-radius: var(--radius-control); color: var(--text-2); text-decoration: none;
+  transition: background var(--dur-1) var(--ease-standard), color var(--dur-1) var(--ease-standard);
+}
+.rail__item .icon { width: 20px; height: 20px; }
+.rail__item:hover { background: var(--surface-3); color: var(--text-1); }
+.rail__item[aria-current="page"] { background: var(--surface-3); color: var(--text-1); }
+.rail__item[aria-current="page"]::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 2px; background: var(--text-1); }
+.rail__sep { width: 24px; height: 1px; background: var(--line-hairline); margin: var(--space-2) 0; }
+.rail__spacer { flex: 1; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: var(--space-4);
+  height: var(--topbar-h); padding: 0 var(--space-4) 0 var(--space-5);
+  background: var(--surface-1); border-bottom: 1px solid var(--line-hairline); min-width: 0;
+}
+.crumbs { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-body); color: var(--text-2); white-space: nowrap; flex: none; }
+.crumbs a { text-decoration: none; padding: 2px var(--space-1); border-radius: var(--radius-xs); }
+.crumbs a:hover { color: var(--text-1); background: var(--surface-3); }
+.crumbs .icon { width: 12px; height: 12px; color: var(--text-3); }
+.crumbs strong { color: var(--text-1); font-weight: 600; }
+.tabs { display: flex; align-items: stretch; gap: var(--space-1); height: 100%; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  display: flex; align-items: center; padding: 0 var(--space-2); white-space: nowrap; text-decoration: none;
+  font-size: var(--text-body); color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab:hover { color: var(--text-1); }
+.tab[aria-current="page"] { color: var(--text-1); font-weight: 600; border-bottom-color: var(--text-1); }
+.topbar__tools { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); flex: none; }
+.save-state { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-small); color: var(--text-2); white-space: nowrap; padding-right: var(--space-2); }
+.save-state .icon { color: var(--sched-done); width: 14px; height: 14px; stroke-width: 2.2; }
+.search-btn {
+  display: inline-flex; align-items: center; gap: var(--space-2); height: var(--control-h); padding: 0 var(--space-2) 0 var(--space-3);
+  border: 1px solid var(--line-hairline); border-radius: var(--radius-control); background: var(--surface-2); color: var(--text-2); font-size: var(--text-body);
+}
+.search-btn:hover { border-color: var(--line-strong); color: var(--text-1); }
+.kbd { display: inline-grid; place-items: center; height: 18px; min-width: 18px; font: 500 var(--text-micro)/1 var(--font-ui); color: var(--text-2); border: 1px solid var(--line-hairline); background: var(--surface-1); border-radius: var(--radius-xs); padding: 0 var(--space-1); }
+.icon-btn { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text-2); }
+.icon-btn:hover { background: var(--surface-3); color: var(--text-1); }
+.menu-btn { display: none; }
+
+.main { padding: var(--space-5); min-width: 0; }
+.page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 1600px; margin: 0 auto; }
+.grid12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
+.col-8 { grid-column: span 8; min-width: 0; }
+.col-4 { grid-column: span 4; min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+
+@media (max-width: 1180px) {
+  .carimbo { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .carimbo__title { grid-row: auto; grid-column: 1 / -1; }
+  .kpi-strip { --kpi-cols: 3; }
+  .col-8, .col-4 { grid-column: 1 / -1; }
+  .search-btn span:not(.kbd) { display: none; }
+}
+@media (max-width: 860px) {
+  .crumbs__project { display: none; }
+}
+@media (max-width: 640px) {
+  .app { grid-template-columns: minmax(0, 1fr); background: none; }
+  .rail { display: none; }
+  .menu-btn { display: grid; }
+  .topbar { padding: 0 var(--space-2); gap: var(--space-2); }
+  .crumbs { display: none; }
+  .save-state span, .search-btn .kbd { display: none; }
+  .main { padding: var(--space-4) var(--space-3); }
+  .carimbo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .carimbo__title { padding: var(--space-4); }
+  .kpi-strip { --kpi-cols: 2; }
+}
+
+.kpi .progress { margin-top: 2px; }
+.sc-wrap { position: relative; overflow-x: auto; }
+.sc-wrap .sc { width: 100%; height: auto; min-width: 680px; }
+.sc-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-3); }
+.sc-note { font-size: var(--text-small); color: var(--text-2); margin-top: var(--space-2); }
+.tip {
+  position: absolute; pointer-events: none; z-index: 3; min-width: 168px;
+  background: var(--surface-1); border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  box-shadow: var(--elev-3); padding: var(--space-2) var(--space-3); font-size: var(--text-small); color: var(--text-2);
+  opacity: 0; transition: opacity var(--dur-1) var(--ease-standard);
+}
+.tip.is-on { opacity: 1; }
+.tip__date { font-weight: 600; color: var(--text-1); margin-bottom: var(--space-1); }
+.tip__row { display: flex; align-items: center; gap: var(--space-2); }
+.tip__row b { font-weight: 600; color: var(--text-1); min-width: 36px; font-variant-numeric: tabular-nums; }
+.tip__row .legend__line { width: 12px; }
+
+/* Lookahead */
+.la { --name-w: 272px; font-size: var(--text-small); }
+.la__head, .la__row { display: grid; grid-template-columns: var(--name-w) minmax(0, 1fr) 32px; gap: var(--space-3); align-items: center; }
+.la__head { padding-bottom: var(--space-2); border-bottom: 1px solid var(--line-hairline); }
+.la__days { position: relative; display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); padding-top: 16px; }
+.la__day { text-align: center; font-size: var(--text-micro); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.la__day.is-today { color: var(--text-1); font-weight: 700; }
+.la__month { position: absolute; top: 0; font: 600 var(--text-micro)/1 var(--font-ui); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); padding-left: 2px; }
+.la__who { text-align: center; }
+.la__body { position: relative; }
+.la__bands { position: absolute; inset: 0 44px 0 calc(var(--name-w) + 12px); display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); pointer-events: none; }
+.la__bands .is-weekend { background: var(--gantt-weekend); }
+.la__now { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid var(--text-1); }
+.la__now span { position: absolute; bottom: 4px; left: 4px; font-size: var(--text-micro); font-weight: 600; color: var(--text-1); white-space: nowrap; background: var(--surface-1); padding: 0 var(--space-1); border-radius: var(--radius-xs); }
+.la__rows { list-style: none; position: relative; }
+.la__group { padding: var(--space-3) 0 var(--space-1); font: 600 var(--text-micro)/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); }
+.la__row { min-height: 32px; border-bottom: 1px solid var(--line-hairline); }
+.la__row:last-child { border-bottom: 0; }
+.la__name { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; }
+.la__task { color: var(--text-1); font-size: var(--text-body); }
+.la__meta { margin-left: auto; color: var(--text-2); font-size: var(--text-micro); }
+.la__track { position: relative; height: 100%; min-height: 32px; }
+.la__bar { --c: var(--sched-not-started); --cs: var(--sched-not-started-soft); position: absolute; top: 50%; height: 12px; transform: translateY(-50%); background: var(--cs); display: flex; overflow: hidden; }
+.la__bar > span { display: block; height: 100%; background: var(--c); }
+.la__bar.is-clipped { box-shadow: inset 2px 0 0 var(--surface-1); }
+.la__bar[data-state="late"] { --c: var(--sched-late); --cs: var(--sched-late-soft); }
+.la__bar[data-state="at-risk"] { --c: var(--sched-at-risk); --cs: var(--sched-at-risk-soft); }
+.la__bar[data-state="on-track"] { --c: var(--sched-on-track); --cs: var(--sched-on-track-soft); }
+.la__bar[data-state="not-started"] { --c: var(--sched-not-started); --cs: var(--sched-not-started-soft); box-shadow: inset 0 0 0 1px var(--sched-not-started); }
+.la__ms { position: absolute; top: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%) rotate(45deg); background: var(--surface-1); border: 2px solid var(--sched-late); }
+.la__note { position: absolute; top: 50%; transform: translateY(-50%); font-size: var(--text-micro); color: var(--text-2); white-space: nowrap; }
+.la .avatar { justify-self: center; }
+
+/* Top 5 desvios */
+.dev { list-style: none; display: flex; flex-direction: column; }
+.dev li { display: grid; grid-template-columns: 16px minmax(0, 1fr) 72px 44px; gap: var(--space-2); align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--line-hairline); }
+.dev li:last-child { border-bottom: 0; }
+.dev__rank { font-size: var(--text-micro); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.dev__name { display: flex; flex-direction: column; min-width: 0; }
+.dev__name span:first-child { color: var(--text-1); }
+.dev__name span:last-child { font-size: var(--text-micro); color: var(--text-2); }
+.dev__bar { height: 6px; background: var(--surface-3); position: relative; }
+.dev__bar span { position: absolute; right: 0; top: 0; bottom: 0; background: var(--sched-late); }
+.dev__val { text-align: right; font-weight: 600; color: var(--text-1); font-variant-numeric: tabular-nums; }
+
+/* Marcos */
+.ms { width: 100%; border-collapse: collapse; font-size: var(--text-small); }
+.ms th { text-align: left; font: 600 var(--text-micro)/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); padding: 0 0 var(--space-2); border-bottom: 1px solid var(--line-hairline); }
+.ms th:not(:first-child), .ms td:not(:first-child) { text-align: right; }
+.ms td { padding: var(--space-2) 0; border-bottom: 1px solid var(--line-hairline); color: var(--text-1); font-variant-numeric: tabular-nums; vertical-align: top; }
+.ms tr:last-child td { border-bottom: 0; }
+.ms td:first-child { padding-right: var(--space-2); }
+.ms__name { display: flex; gap: var(--space-2); align-items: flex-start; }
+.ms__dia { flex: none; width: 8px; height: 8px; margin-top: 4px; transform: rotate(45deg); background: var(--text-1); }
+.ms__dia.is-forecast { background: transparent; border: 1.5px solid var(--text-1); }
+.ms__sub { display: block; font-size: var(--text-micro); color: var(--text-2); }
+.ms__late { color: var(--sched-late); font-weight: 600; }
+.ms td:not(:first-child), .ms th:not(:first-child) { padding-left: var(--space-3); white-space: nowrap; }
+
+/* Anomalias */
+.anom { list-style: none; display: flex; flex-direction: column; }
+.anom li { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--line-hairline); align-items: start; }
+.anom li:last-child { border-bottom: 0; }
+.anom .pill { justify-self: start; }
+.anom__title { color: var(--text-1); }
+.anom__meta { display: block; font-size: var(--text-micro); color: var(--text-2); margin-top: 2px; }
+
+.variants { border-top: 1px solid var(--line-hairline); padding-top: var(--space-4); }
+.variants__grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-4); }
+.variants__grid > .panel { grid-column: span 4; }
+.variants__note { grid-column: span 8; align-self: center; font-size: var(--text-body); color: var(--text-2); max-width: 60ch; }
+.variants__note strong { color: var(--text-1); }
+
+@media (max-width: 1180px) {
+  .variants__grid > .panel, .variants__note { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .la { --name-w: 132px; }
+  .la__meta { display: none; }
+  .la__note { display: none; }
+  .la__task { font-size: var(--text-small); }
+}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-tasks" viewBox="0 0 24 24"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol><symbol id="i-report" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 18v-3M12 18v-6M16 18v-4"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol><symbol id="i-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol><symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol><symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 7h10v10M7 17 17 7"/></symbol><symbol id="i-listplus" viewBox="0 0 24 24"><path d="M11 12H3M16 6H3M16 18H3M18 9v6M21 12h-6"/></symbol><symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol><symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol><symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" /></symbol><symbol id="i-olist" viewBox="0 0 24 24"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></symbol><symbol id="i-checklist" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></symbol><symbol id="i-quote" viewBox="0 0 24 24"><path d="M4 5v14M9 8h11M9 12h11M9 16h7"/></symbol><symbol id="i-divider" viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M7 7h10M7 17h10" opacity=".35"/></symbol><symbol id="i-action" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol><symbol id="i-decision" viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12Z"/><path d="M8.5 12h7"/></symbol><symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="2.6"/></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol><symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol></defs></svg>
+<div class="app">
+<nav class="rail" aria-label="Navegação principal">
+  <a class="rail__logo" href="#" aria-label="Projeta, início"><svg viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="256" height="256" rx="56" fill="#F7F7F5"/>
+  <path d="M55 54H137C175.66 54 207 85.34 207 124C207 162.66 175.66 194 137 194H93V154H137C153.569 154 167 140.569 167 124C167 107.431 153.569 94 137 94H95V194H55V54Z" fill="#1A1A1A"/>
+  <path d="M55 194L113 136L142 165L113 194H55Z" fill="#FF6A00"/>
+  <path d="M55 194H205" stroke="#FF6A00" stroke-width="10" stroke-linecap="round"/>
+</svg></a>
+  <a class="rail__item" href="#" aria-label="Portfólio" title="Portfólio"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-grid"/></svg></a>
+  <a class="rail__item" href="#" aria-label="Projetos" title="Projetos" aria-current="page"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-folder"/></svg></a>
+  <a class="rail__item" href="#" aria-label="Minhas tarefas" title="Minhas tarefas"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-tasks"/></svg></a>
+  <a class="rail__item" href="#" aria-label="Relatórios" title="Relatórios"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-report"/></svg></a>
+  <span class="rail__spacer"></span>
+  <a class="rail__item" href="#" aria-label="Configurações" title="Configurações"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-sliders"/></svg></a>
+  <span class="rail__sep" aria-hidden="true"></span>
+  <a class="rail__item" href="#" aria-label="Conta de Helena Duarte" title="Helena Duarte"><span class="avatar">HD</span></a>
+</nav>
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="Abrir menu"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+  <nav class="crumbs" aria-label="Trilha">
+    <a href="#">Portfólio</a><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-chev"/></svg>
+    <strong class="crumbs__project">Compressor C-210</strong>
+  </nav>
+  <nav class="tabs" aria-label="Seções do projeto">
+    <a class="tab" href="#" aria-current="page">Visão Geral</a>
+    <a class="tab" href="#">Gantt</a>
+    <a class="tab" href="#">Quadro</a>
+    <a class="tab" href="#">Curva S</a>
+    <a class="tab" href="#">Anomalias</a>
+    <a class="tab" href="#">Atas</a>
+    <a class="tab" href="#">Relatórios</a>
+  </nav>
+  <div class="topbar__tools">
+    <span class="save-state" role="status"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-check"/></svg><span>Salvo</span></span>
+    <button class="search-btn" type="button" aria-label="Buscar (Command K)"><svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Buscar</span><span class="kbd">⌘K</span></button>
+    <button class="icon-btn" type="button" data-theme-toggle aria-label="Alternar tema claro e escuro"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-contrast"/></svg></button>
+    <button class="icon-btn" type="button" aria-label="Notificações"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-bell"/></svg></button>
+  </div>
+</header>
+<main class="main" id="conteudo">
+<div class="page">
+
+  <header class="carimbo reveal" style="--i:0">
+    <div class="carimbo__title">
+      <div class="carimbo__top">
+        <span class="label">Projeto PRJ-0427 · Manutenção · Utilidades</span>
+        <div class="carimbo__actions">
+          <a class="btn" href="opr-one-page-report.html"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>Gerar OPR</a>
+          <button class="btn btn--primary" type="button"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Fechar atualização</button>
+        </div>
+      </div>
+      <h1>Restauração do Compressor C-210</h1>
+      <p class="carimbo__sub">Compressor de refrigeração da central de água gelada, casa de máquinas 2</p>
+    </div>
+    <div class="carimbo__cell"><span class="label">Cliente</span><span class="carimbo__value">Siderúrgica Exemplo S.A.</span></div>
+    <div class="carimbo__cell"><span class="label">Período</span><span class="carimbo__value">29/09 08:00 → 27/10 19:00</span></div>
+    <div class="carimbo__cell"><span class="label">Status</span><span><span class="pill" data-state="at-risk">Em risco</span></span></div>
+    <div class="carimbo__cell"><span class="label">Gestora</span><span class="carimbo__value">Helena Duarte</span></div>
+    <div class="carimbo__cell"><span class="label">Última atualização</span><span class="carimbo__value">27/10 às 16:30 · nº 08</span></div>
+    <div class="carimbo__cell"><span class="label">Linha de base</span><span class="carimbo__value">Rev. 02 · 26/09</span></div>
+  </header>
+
+  <section class="kpi-strip reveal" style="--i:1" aria-label="Indicadores na data de corte">
+    <div class="kpi"><span class="label">Realizado</span><span class="kpi__value">94%</span><span class="kpi__foot"><span class="progress" aria-hidden="true"><span style="width:94%"></span></span><span class="num">+5 p.p. desde 26/10</span></span></div>
+    <div class="kpi"><span class="label">Planejado</span><span class="kpi__value">97%</span><span class="kpi__foot">na data de corte</span></div>
+    <div class="kpi"><span class="label">Desvio</span><span class="kpi__value" data-tone="late">−3<small>p.p.</small></span><span class="kpi__foot">Realizado − Planejado</span></div>
+    <div class="kpi"><span class="label">SPI</span><span class="kpi__value">0,97</span><span class="kpi__foot">abaixo de 1,00: atrás do plano</span></div>
+    <div class="kpi"><span class="label">Término previsto</span><span class="kpi__value">28/10<small>12:00</small></span><span class="kpi__foot"><span class="pill" data-state="late">+17 h</span>plano 27/10 19:00</span></div>
+    <div class="kpi"><span class="label">Anomalias abertas</span><span class="kpi__value">3</span><span class="kpi__foot">1 alta · 1 média · 1 baixa</span></div>
+  </section>
+
+  <div class="grid12">
+    <div class="col-8 stack">
+      <section class="panel reveal" style="--i:2" aria-labelledby="h-sc">
+        <div class="section-header"><h2 class="section-header__title" id="h-sc">Curva S</h2><span class="section-header__hint">% acumulado por data de corte</span><a class="section-header__action" href="#">Abrir Curva S<svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#i-chev"/></svg></a></div>
+        <div class="sc-head">
+          <div class="legend">
+            <span class="legend__item k-planned"><span class="legend__line"></span><span style="color:var(--text-2)">Planejado (linha de base)</span></span>
+            <span class="legend__item k-replanned"><span class="legend__line"></span><span style="color:var(--text-2)">Replanejado</span></span>
+            <span class="legend__item k-actual"><span class="legend__line"></span><span style="color:var(--text-2)">Realizado</span></span>
+            <span class="legend__item k-actual"><span class="legend__line legend__line--dash"></span><span style="color:var(--text-2)">Estimado antes da 1ª atualização (08/10)</span></span>
+          </div>
+        </div>
+        <div class="sc-wrap">
+          <svg class="sc" id="ov-sc" viewBox="0 0 846 294" width="846" height="294" style="--sc-surface: var(--surface-1)" role="group" aria-labelledby="ov-sc-t" tabindex="0">
+<title id="ov-sc-t">Curva S: Planejado, Replanejado e Realizado por data de corte. Use as setas para percorrer as datas.</title>
+<rect class="forecast" x="796" y="22" width="50" height="272"/>
+<line class="axis" x1="92" x2="846" y1="218" y2="218"/>
+<text x="84" y="222" text-anchor="end">0%</text>
+<line class="grid" x1="92" x2="846" y1="169" y2="169"/>
+<text x="84" y="173" text-anchor="end">25%</text>
+<line class="grid" x1="92" x2="846" y1="120" y2="120"/>
+<text x="84" y="124" text-anchor="end">50%</text>
+<line class="grid" x1="92" x2="846" y1="71" y2="71"/>
+<text x="84" y="75" text-anchor="end">75%</text>
+<line class="grid" x1="92" x2="846" y1="22" y2="22"/>
+<text x="84" y="26" text-anchor="end">100%</text>
+<line class="cut" x1="770.1" x2="770.1" y1="22" y2="218"/>
+<text x="764.1" y="210" text-anchor="end">Corte 27/10 16:30</text>
+<text x="800" y="210" text-anchor="start">prev.</text>
+<text x="96" y="234" text-anchor="middle">29/09</text>
+<text x="147.9" y="234" text-anchor="middle">08/10</text>
+<text x="199.7" y="234" text-anchor="middle">09/10</text>
+<text x="251.6" y="234" text-anchor="middle">13/10</text>
+<text x="303.4" y="234" text-anchor="middle">14/10</text>
+<text x="355.3" y="234" text-anchor="middle">15/10</text>
+<text x="407.1" y="234" text-anchor="middle">16/10</text>
+<text x="459" y="234" text-anchor="middle">19/10</text>
+<text x="510.9" y="234" text-anchor="middle">20/10</text>
+<text x="562.7" y="234" text-anchor="middle">21/10</text>
+<text x="614.6" y="234" text-anchor="middle">22/10</text>
+<text x="666.4" y="234" text-anchor="middle">23/10</text>
+<text x="718.3" y="234" text-anchor="middle">26/10</text>
+<text x="770.1" y="234" text-anchor="middle" class="t-strong">27/10</text>
+<text x="822" y="234" text-anchor="middle">28/10</text>
+<polyline class="ln ln-planned" points="96,218 147.9,135.7 199.7,125.9 251.6,114.1 303.4,96.5 355.3,80.8 407.1,63.2 459,51.4 510.9,45.5 562.7,41.6 614.6,37.7 666.4,33.8 718.3,29.8 770.1,27.9"/>
+<polyline class="ln ln-replanned" points="562.7,74.9 614.6,63.2 666.4,49.4 718.3,37.7 770.1,29.8 822,22"/>
+<polyline class="ln ln-actual ln-est" points="96,218 147.9,151.4"/>
+<polyline class="ln ln-actual" points="147.9,151.4 199.7,151.4 251.6,151.4 303.4,151.4 355.3,151.4 407.1,127.8 459,104.3 510.9,94.5 562.7,74.9 614.6,65.1 666.4,57.3 718.3,43.6 770.1,33.8"/>
+<circle class="mk-replanned" cx="562.7" cy="74.9" r="4"/>
+<circle class="mk-replanned" cx="614.6" cy="63.2" r="4"/>
+<circle class="mk-replanned" cx="666.4" cy="49.4" r="4"/>
+<circle class="mk-replanned" cx="718.3" cy="37.7" r="4"/>
+<circle class="mk-replanned" cx="770.1" cy="29.8" r="4"/>
+<circle class="mk-replanned" cx="822" cy="22" r="4"/>
+<circle class="mk-actual" cx="147.9" cy="151.4" r="5"/>
+<circle class="mk-actual" cx="199.7" cy="151.4" r="5"/>
+<circle class="mk-actual" cx="251.6" cy="151.4" r="5"/>
+<circle class="mk-actual" cx="303.4" cy="151.4" r="5"/>
+<circle class="mk-actual" cx="355.3" cy="151.4" r="5"/>
+<circle class="mk-actual" cx="407.1" cy="127.8" r="5"/>
+<circle class="mk-actual" cx="459" cy="104.3" r="5"/>
+<circle class="mk-actual" cx="510.9" cy="94.5" r="5"/>
+<circle class="mk-actual" cx="562.7" cy="74.9" r="5"/>
+<circle class="mk-actual" cx="614.6" cy="65.1" r="5"/>
+<circle class="mk-actual" cx="666.4" cy="57.3" r="5"/>
+<circle class="mk-actual" cx="718.3" cy="43.6" r="5"/>
+<circle class="mk-actual" cx="770.1" cy="33.8" r="5"/>
+<text class="t-row" x="760.1" y="20.9" text-anchor="end">Plan. 97%</text>
+<text class="t-strong" x="778.1" y="48.8" text-anchor="start">Real. 94%</text>
+<text class="t-row" x="822" y="13" text-anchor="middle">100%</text>
+<line class="rule" x1="0" x2="846" y1="240" y2="240"/>
+<line class="key-planned" x1="0" x2="12" y1="251.5" y2="251.5"/>
+<text class="t-row" x="18" y="255.5">Planejado</text>
+<text x="96" y="255.5" text-anchor="middle">0%</text>
+<text x="147.9" y="255.5" text-anchor="middle">42%</text>
+<text x="199.7" y="255.5" text-anchor="middle">47%</text>
+<text x="251.6" y="255.5" text-anchor="middle">53%</text>
+<text x="303.4" y="255.5" text-anchor="middle">62%</text>
+<text x="355.3" y="255.5" text-anchor="middle">70%</text>
+<text x="407.1" y="255.5" text-anchor="middle">79%</text>
+<text x="459" y="255.5" text-anchor="middle">85%</text>
+<text x="510.9" y="255.5" text-anchor="middle">88%</text>
+<text x="562.7" y="255.5" text-anchor="middle">90%</text>
+<text x="614.6" y="255.5" text-anchor="middle">92%</text>
+<text x="666.4" y="255.5" text-anchor="middle">94%</text>
+<text x="718.3" y="255.5" text-anchor="middle">96%</text>
+<text x="770.1" y="255.5" text-anchor="middle">97%</text>
+<line class="rule" x1="0" x2="846" y1="256" y2="256"/>
+<line class="key-replanned" x1="0" x2="12" y1="267.5" y2="267.5"/>
+<text class="t-row" x="18" y="271.5">Replanejado</text>
+<text x="562.7" y="271.5" text-anchor="middle">73%</text>
+<text x="614.6" y="271.5" text-anchor="middle">79%</text>
+<text x="666.4" y="271.5" text-anchor="middle">86%</text>
+<text x="718.3" y="271.5" text-anchor="middle">92%</text>
+<text x="770.1" y="271.5" text-anchor="middle">96%</text>
+<text x="822" y="271.5" text-anchor="middle">100%</text>
+<line class="rule" x1="0" x2="846" y1="272" y2="272"/>
+<line class="key-actual" x1="0" x2="12" y1="283.5" y2="283.5"/>
+<text class="t-row" x="18" y="287.5">Realizado</text>
+<text x="96" y="287.5" text-anchor="middle" class="t-strong">0%</text>
+<text x="147.9" y="287.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="199.7" y="287.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="251.6" y="287.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="303.4" y="287.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="355.3" y="287.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="407.1" y="287.5" text-anchor="middle" class="t-strong">46%</text>
+<text x="459" y="287.5" text-anchor="middle" class="t-strong">58%</text>
+<text x="510.9" y="287.5" text-anchor="middle" class="t-strong">63%</text>
+<text x="562.7" y="287.5" text-anchor="middle" class="t-strong">73%</text>
+<text x="614.6" y="287.5" text-anchor="middle" class="t-strong">78%</text>
+<text x="666.4" y="287.5" text-anchor="middle" class="t-strong">82%</text>
+<text x="718.3" y="287.5" text-anchor="middle" class="t-strong">89%</text>
+<text x="770.1" y="287.5" text-anchor="middle" class="t-strong">94%</text>
+<line class="rule" x1="0" x2="846" y1="288" y2="288"/>
+<line class="hover-line" id="ov-sc-hl" x1="0" x2="0" y1="22" y2="218" visibility="hidden"/>
+<rect data-i="0" x="70.1" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="1" x="122" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="2" x="173.8" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="3" x="225.7" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="4" x="277.5" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="5" x="329.4" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="6" x="381.2" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="7" x="433.1" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="8" x="485" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="9" x="536.8" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="10" x="588.7" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="11" x="640.5" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="12" x="692.4" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="13" x="744.2" y="0" width="51.9" height="218" fill="transparent"/>
+<rect data-i="14" x="796.1" y="0" width="51.9" height="218" fill="transparent"/>
+</svg>
+          <div class="tip" id="ov-tip" aria-hidden="true"></div>
+        </div>
+        <table class="sr-only"><caption>Curva S, valores por data de corte</caption>
+<thead><tr><th scope="col">Data de corte</th><th scope="col">Planejado</th><th scope="col">Replanejado</th><th scope="col">Realizado</th></tr></thead>
+<tbody><tr><th scope="row">29/09</th><td>0%</td><td>—</td><td>0%</td></tr><tr><th scope="row">08/10</th><td>42%</td><td>—</td><td>34%</td></tr><tr><th scope="row">09/10</th><td>47%</td><td>—</td><td>34%</td></tr><tr><th scope="row">13/10</th><td>53%</td><td>—</td><td>34%</td></tr><tr><th scope="row">14/10</th><td>62%</td><td>—</td><td>34%</td></tr><tr><th scope="row">15/10</th><td>70%</td><td>—</td><td>34%</td></tr><tr><th scope="row">16/10</th><td>79%</td><td>—</td><td>46%</td></tr><tr><th scope="row">19/10</th><td>85%</td><td>—</td><td>58%</td></tr><tr><th scope="row">20/10</th><td>88%</td><td>—</td><td>63%</td></tr><tr><th scope="row">21/10</th><td>90%</td><td>73%</td><td>73%</td></tr><tr><th scope="row">22/10</th><td>92%</td><td>79%</td><td>78%</td></tr><tr><th scope="row">23/10</th><td>94%</td><td>86%</td><td>82%</td></tr><tr><th scope="row">26/10</th><td>96%</td><td>92%</td><td>89%</td></tr><tr><th scope="row">27/10</th><td>97%</td><td>96%</td><td>94%</td></tr><tr><th scope="row">28/10 (previsto)</th><td>—</td><td>100%</td><td>—</td></tr></tbody></table>
+      </section>
+
+      <section class="panel reveal" style="--i:3" aria-labelledby="h-la">
+        <div class="section-header"><h2 class="section-header__title" id="h-la">Programação das próximas 2 semanas</h2><span class="section-header__hint num">27/10 → 09/11 · 7 tarefas e 1 marco</span><a class="section-header__action" href="#">Abrir Gantt<svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#i-chev"/></svg></a></div>
+        <div class="la" role="figure" aria-label="Programação de 27/10 a 09/11">
+  <div class="la__head"><span class="la__name label">Tarefa</span><span class="la__track la__days"><span class="la__month" style="left:0">out</span><span class="la__month" style="left:35.7%">nov</span><span class="la__day is-today">27</span><span class="la__day">28</span><span class="la__day">29</span><span class="la__day">30</span><span class="la__day is-weekend">31</span><span class="la__day is-weekend">01</span><span class="la__day">02</span><span class="la__day">03</span><span class="la__day">04</span><span class="la__day">05</span><span class="la__day">06</span><span class="la__day is-weekend">07</span><span class="la__day is-weekend">08</span><span class="la__day">09</span></span><span class="la__who label" aria-hidden="true">Resp.</span></div>
+  <div class="la__body">
+    <div class="la__bands" aria-hidden="true"><span></span><span></span><span></span><span></span><span class="is-weekend"></span><span class="is-weekend"></span><span></span><span></span><span></span><span></span><span></span><span class="is-weekend"></span><span class="is-weekend"></span><span></span><span class="la__now" style="left:4.9%"><span>Hoje 16:30</span></span></div>
+    <ul class="la__rows"><li class="la__group" role="presentation">Fase 05 — Comissionamento elétrico</li>
+<li class="la__row"><span class="la__name"><span class="la__task">Teste de isolamento do motor M-210B</span><span class="la__meta num">60%</span></span><span class="la__track"><span class="la__bar is-clipped" data-state="late" style="left:0%;width:10.1%"><span style="width:60%"></span></span></span><span class="avatar" title="Responsável">CM</span></li>
+<li class="la__row"><span class="la__name"><span class="la__task">Ajuste das proteções do CCM-3</span><span class="la__meta num">50%</span></span><span class="la__track"><span class="la__bar is-clipped" data-state="at-risk" style="left:0%;width:9.5%"><span style="width:50%"></span></span></span><span class="avatar" title="Responsável">CM</span></li>
+<li class="la__row"><span class="la__name"><span class="la__task">Energização e partida assistida</span><span class="la__meta num">0%</span></span><span class="la__track"><span class="la__bar" data-state="not-started" style="left:9.5%;width:1.2%"><span style="width:0%"></span></span></span><span class="avatar" title="Responsável">RS</span></li>
+<li class="la__group" role="presentation">Fase 06 — 5S e desmobilização</li>
+<li class="la__row"><span class="la__name"><span class="la__task">Retirada de andaimes e limpeza</span><span class="la__meta num">20%</span></span><span class="la__track"><span class="la__bar is-clipped" data-state="at-risk" style="left:0%;width:10.1%"><span style="width:20%"></span></span></span><span class="avatar" title="Responsável">DR</span></li>
+<li class="la__group" role="presentation">Desbloqueio e retorno</li>
+<li class="la__row"><span class="la__name"><span class="la__task">Retorno operacional</span><span class="la__meta num">Marco</span></span><span class="la__track"><span class="la__ms" style="left:10.7%" data-state="late"></span><span class="la__note" style="left:calc(10.7% + 12px)">previsto 28/10 12:00 · plano 27/10 19:00</span></span><span class="avatar" title="Responsável">HD</span></li>
+<li class="la__group" role="presentation">Pós-partida · acompanhamento</li>
+<li class="la__row"><span class="la__name"><span class="la__task">Operação assistida 72 h</span><span class="la__meta num">0%</span></span><span class="la__track"><span class="la__bar" data-state="not-started" style="left:10.7%;width:21.4%"><span style="width:0%"></span></span></span><span class="avatar" title="Responsável">RS</span></li>
+<li class="la__row"><span class="la__name"><span class="la__task">Análise de vibração e liberação</span><span class="la__meta num">0%</span></span><span class="la__track"><span class="la__bar" data-state="not-started" style="left:42.9%;width:14.2%"><span style="width:0%"></span></span></span><span class="avatar" title="Responsável">DR</span></li>
+<li class="la__row"><span class="la__name"><span class="la__task">Entrega do data book</span><span class="la__meta num">0%</span></span><span class="la__track"><span class="la__bar" data-state="not-started" style="left:50%;width:21.4%"><span style="width:0%"></span></span></span><span class="avatar" title="Responsável">HD</span></li></ul>
+  </div>
+</div>
+        <div class="legend" style="margin-top:var(--space-3)">
+          <span class="legend__item"><span class="pill" data-state="late">Atrasada</span></span>
+          <span class="legend__item"><span class="pill" data-state="at-risk">Em risco</span></span>
+          <span class="legend__item"><span class="pill" data-state="not-started">Não iniciada</span></span>
+          <span class="legend__item">Barra cheia = % concluído · faixa cinza = fim de semana</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-4 stack">
+      <section class="panel reveal" style="--i:2" aria-labelledby="h-dev">
+        <div class="section-header"><h2 class="section-header__title" id="h-dev">Top 5 desvios</h2><span class="section-header__hint">ponderado pela duração</span></div>
+        <ol class="dev">
+          <li><span class="dev__rank">1</span><span class="dev__name"><span>Teste de isolamento do motor M-210B</span><span>Fase 05</span></span><span class="dev__bar" aria-hidden="true"><span style="width:100%"></span></span><span class="dev__val">−1,2</span></li>
+          <li><span class="dev__rank">2</span><span class="dev__name"><span>Ajuste das proteções do CCM-3</span><span>Fase 05</span></span><span class="dev__bar" aria-hidden="true"><span style="width:58.3%"></span></span><span class="dev__val">−0,7</span></li>
+          <li><span class="dev__rank">3</span><span class="dev__name"><span>Retirada de andaimes e limpeza</span><span>Fase 06</span></span><span class="dev__bar" aria-hidden="true"><span style="width:41.7%"></span></span><span class="dev__val">−0,5</span></li>
+          <li><span class="dev__rank">4</span><span class="dev__name"><span>Aferição de instrumentos PT e TT</span><span>Fase 05</span></span><span class="dev__bar" aria-hidden="true"><span style="width:33.3%"></span></span><span class="dev__val">−0,4</span></li>
+          <li><span class="dev__rank">5</span><span class="dev__name"><span>Inspeção 5S da casa de máquinas</span><span>Fase 06</span></span><span class="dev__bar" aria-hidden="true"><span style="width:16.7%"></span></span><span class="dev__val">−0,2</span></li>
+        </ol>
+        <p class="sc-note">Em p.p. do projeto. Somam −3,0 p.p.</p>
+      </section>
+
+      <section class="panel reveal" style="--i:3" aria-labelledby="h-act">
+        <div class="section-header"><h2 class="section-header__title" id="h-act">Ações abertas</h2><span class="section-header__hint">das atas · 4 abertas, 1 vencida</span><a class="section-header__action" href="atas-de-reuniao.html">Ver atas<svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#i-chev"/></svg></a></div>
+        <ul class="actions" style="list-style:none">
+          <li class="arow"><button class="arow__check" type="button" aria-label="Marcar como concluída"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="arow__text">Enviar o laudo de estanqueidade e vácuo assinado à engenharia</span>
+            <span class="arow__meta"><span class="chip"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-user"/></svg>Diego Ramos</span><span class="chip chip--late"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg>24/10 · vencida</span><span class="arow__src">Ata 20/10</span></span></li>
+          <li class="arow"><button class="arow__check" type="button" aria-label="Marcar como concluída"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="arow__text">Reprogramar o teste de isolamento do M-210B com a equipe elétrica</span>
+            <span class="arow__meta"><span class="chip"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-user"/></svg>Carla Menezes</span><span class="chip"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg>28/10</span><span class="arow__src">Ata 27/10</span></span></li>
+          <li class="arow"><button class="arow__check" type="button" aria-label="Marcar como concluída"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="arow__text">Confirmar a janela de desbloqueio com a operação de Utilidades</span>
+            <span class="arow__meta"><span class="chip"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-user"/></svg>Rafael Souza</span><span class="chip"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg>28/10 08:00</span><span class="arow__src">Ata 27/10</span></span></li>
+          <li class="arow"><button class="arow__check" type="button" aria-label="Marcar como concluída"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="arow__text">Atualizar o procedimento LOTO do C-210 com os novos pontos de bloqueio</span>
+            <span class="arow__meta"><span class="chip"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-user"/></svg>Paulo Teixeira</span><span class="chip"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg>06/11</span><span class="arow__src">Ata 20/10</span></span></li>
+        </ul>
+      </section>
+
+      <section class="panel reveal" style="--i:4" aria-labelledby="h-ms">
+        <div class="section-header"><h2 class="section-header__title" id="h-ms">Marcos: planejado × previsto</h2></div>
+        <table class="ms">
+          <thead><tr><th scope="col">Marco</th><th scope="col">Plano</th><th scope="col">Real / prev.</th><th scope="col">Δ</th></tr></thead>
+          <tbody>
+            <tr><td><span class="ms__name"><span class="ms__dia" aria-hidden="true"></span><span>Equipamento bloqueado</span></span></td><td>29/09</td><td>29/09</td><td>0 d</td></tr>
+            <tr><td><span class="ms__name"><span class="ms__dia" aria-hidden="true"></span><span>Estanqueidade aprovada</span></span></td><td>14/10</td><td>15/10</td><td class="ms__late">+1 d</td></tr>
+            <tr><td><span class="ms__name"><span class="ms__dia" aria-hidden="true"></span><span>Carga de fluido concluída</span></span></td><td>20/10</td><td>20/10</td><td>0 d</td></tr>
+            <tr><td><span class="ms__name"><span class="ms__dia is-forecast" aria-hidden="true"></span><span>Comissionamento concluído<span class="ms__sub">previsto</span></span></span></td><td>24/10</td><td>28/10</td><td class="ms__late">+4 d</td></tr>
+            <tr><td><span class="ms__name"><span class="ms__dia is-forecast" aria-hidden="true"></span><span>Retorno operacional<span class="ms__sub">previsto</span></span></span></td><td>27/10 19:00</td><td>28/10 12:00</td><td class="ms__late">+17 h</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel reveal" style="--i:5" aria-labelledby="h-an">
+        <div class="section-header"><h2 class="section-header__title" id="h-an">Anomalias</h2><span class="section-header__hint">3 abertas</span><a class="section-header__action" href="#">Ver todas<svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#i-chev"/></svg></a></div>
+        <ul class="anom">
+          <li><span class="pill" data-state="late">Alta</span><span><span class="anom__title">Isolamento do enrolamento do M-210B abaixo de 100 MΩ</span><span class="anom__meta num">Aberta em 24/10 · Carla Menezes</span></span></li>
+          <li><span class="pill" data-state="at-risk">Média</span><span><span class="anom__title">Vazamento residual na válvula de serviço da sucção</span><span class="anom__meta num">Aberta em 22/10 · Diego Ramos</span></span></li>
+          <li><span class="pill" data-state="on-track">Baixa</span><span><span class="anom__title">Etiqueta de identificação da linha de descarga ilegível</span><span class="anom__meta num">Aberta em 19/10 · Paulo Teixeira</span></span></li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <section class="variants reveal" style="--i:6" aria-labelledby="h-var">
+    <div class="section-header"><h2 class="section-header__title" id="h-var">Variação de estado</h2><span class="section-header__hint">nota de mockup: o mesmo painel quando não há marcos à frente</span></div>
+    <div class="variants__grid">
+      <section class="panel" aria-labelledby="h-ms-empty">
+        <div class="section-header"><h2 class="section-header__title" id="h-ms-empty">Marcos: planejado × previsto</h2></div>
+        <div class="empty">
+          <span class="empty__icon"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-flag"/></svg></span>
+          <p class="empty__title">Nenhum marco nos próximos 30 dias</p>
+          <p class="empty__text">Marcos mostram o atraso em dias. Marque no Gantt as entregas que o cliente acompanha.</p>
+          <button class="btn btn--sm" type="button"><svg class="icon icon--sm" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Adicionar marco no Gantt</button>
+        </div>
+      </section>
+      <p class="variants__note"><strong>Regra:</strong> toda tela vazia diz o que falta e oferece o próximo passo em um botão. O EmptyState é um só componente, usado igual em todos os painéis.</p>
+    </div>
+  </section>
+
+</div>
+</main>
+</div>
+<script>
+(function(){
+  var root=document.documentElement;
+  var mq=window.matchMedia('(prefers-color-scheme: dark)');
+  function current(){return root.getAttribute('data-theme')||(mq.matches?'dark':'light');}
+  document.querySelectorAll('[data-theme-toggle]').forEach(function(b){
+    b.setAttribute('aria-pressed',String(current()==='dark'));
+    b.addEventListener('click',function(){var next=current()==='dark'?'light':'dark';root.setAttribute('data-theme',next);b.setAttribute('aria-pressed',String(next==='dark'));});
+  });
+})();
+</script>
+<script>
+(function(){
+  var svg=document.getElementById('ov-sc'); if(!svg) return;
+  var wrap=svg.parentNode, tip=document.getElementById('ov-tip'), hl=document.getElementById('ov-sc-hl');
+  var D={"c":["29/09","08/10","09/10","13/10","14/10","15/10","16/10","19/10","20/10","21/10","22/10","23/10","26/10","27/10","28/10"],"p":[0,42,47,53,62,70,79,85,88,90,92,94,96,97,null],"r":[null,null,null,null,null,null,null,null,null,73,79,86,92,96,100],"a":[0,34,34,34,34,34,46,58,63,73,78,82,89,94,null]};
+  var cols=svg.querySelectorAll('rect[data-i]'), cur=13;
+  function row(label,cls,v){var d=document.createElement('div');d.className='tip__row';var k=document.createElement('span');k.className='legend__line '+cls;k.style.color='currentColor';var w=document.createElement('span');w.className=cls;w.appendChild(k);var b=document.createElement('b');b.textContent=v==null?'—':v+'%';var s=document.createElement('span');s.textContent=label;d.appendChild(w);d.appendChild(b);d.appendChild(s);return d;}
+  function show(i){
+    cur=i; var r=cols[i], x=parseFloat(r.getAttribute('x'))+parseFloat(r.getAttribute('width'))/2;
+    hl.setAttribute('x1',x);hl.setAttribute('x2',x);hl.setAttribute('visibility','visible');
+    tip.textContent='';var h=document.createElement('div');h.className='tip__date';h.textContent=D.c[i]+(i===14?' · previsto':i===13?' · corte 16:30':'');tip.appendChild(h);
+    tip.appendChild(row('Realizado','k-actual',D.a[i]));tip.appendChild(row('Replanejado','k-replanned',D.r[i]));tip.appendChild(row('Planejado','k-planned',D.p[i]));
+    var scale=svg.getBoundingClientRect().width/svg.viewBox.baseVal.width, px=x*scale-wrap.scrollLeft;
+    var left=px+12; if(left+180>wrap.clientWidth) left=px-192; tip.style.left=Math.max(0,left)+'px'; tip.style.top='8px'; tip.classList.add('is-on');
+  }
+  function hide(){tip.classList.remove('is-on');hl.setAttribute('visibility','hidden');}
+  cols.forEach(function(r){r.addEventListener('pointerenter',function(){show(+r.getAttribute('data-i'));});});
+  svg.addEventListener('pointerleave',hide);
+  svg.addEventListener('focus',function(){show(cur);});
+  svg.addEventListener('blur',hide);
+  svg.addEventListener('keydown',function(e){if(e.key==='ArrowRight'){e.preventDefault();show(Math.min(cols.length-1,cur+1));}if(e.key==='ArrowLeft'){e.preventDefault();show(Math.max(0,cur-1));}if(e.key==='Escape')hide();});
+})();
+</script>
+</body>
+
+</html>
