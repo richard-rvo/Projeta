@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPR — Projeta</title>
+<meta name="description" content="Mockup estático do Projeta para aprovação de design. Dados de exemplo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Inter:wght@400..700&display=swap">
+
+<style>
+
+:root {
+  color-scheme: light;
+  --surface-0: oklch(0.965 0.004 95);
+  --surface-1: oklch(0.995 0.002 95);
+  --surface-2: oklch(0.982 0.003 95);
+  --surface-3: oklch(0.942 0.006 95);
+  --surface-inset: oklch(0.918 0.008 95);
+  --text-1: oklch(0.205 0.008 75);
+  --text-2: oklch(0.455 0.009 75);
+  --text-3: oklch(0.63 0.008 75);
+  --text-on-accent: oklch(1 0 0);
+  --line-hairline: oklch(0.205 0.008 75 / 0.10);
+  --line-strong: oklch(0.205 0.008 75 / 0.18);
+  --sched-not-started: oklch(0.655 0.021 265);
+  --sched-on-track: oklch(0.600 0.140 250);
+  --sched-at-risk: oklch(0.720 0.150 75);
+  --sched-late: oklch(0.585 0.200 25);
+  --sched-done: oklch(0.620 0.135 155);
+  --sched-critical: oklch(0.520 0.235 15);
+  --sched-baseline: oklch(0.700 0.028 265);
+  --sched-slack: oklch(0.780 0.045 250);
+  --gantt-weekend: oklch(0.22 0.01 265 / 0.045);
+  --sched-not-started-soft: oklch(0.655 0.021 265 / 0.13);
+  --sched-on-track-soft: oklch(0.600 0.140 250 / 0.13);
+  --sched-at-risk-soft: oklch(0.720 0.150 75 / 0.16);
+  --sched-late-soft: oklch(0.585 0.200 25 / 0.13);
+  --sched-done-soft: oklch(0.620 0.135 155 / 0.14);
+  --sched-critical-soft: oklch(0.520 0.235 15 / 0.13);
+  --brand: #ff6a00;
+  --brand-hover: #e85e00;
+  --brand-soft: oklch(0.70 0.18 55 / 0.13);
+  --elev-1: 0 1px 2px oklch(0.22 0.011 265 / 0.06);
+  --elev-2: 0 1px 2px oklch(0.22 0.011 265 / 0.05), 0 5px 16px oklch(0.22 0.011 265 / 0.06);
+  --elev-3: 0 4px 8px oklch(0.22 0.011 265 / 0.07), 0 12px 28px oklch(0.22 0.011 265 / 0.08);
+  --elev-4: 0 8px 16px oklch(0.22 0.011 265 / 0.08), 0 24px 56px oklch(0.22 0.011 265 / 0.12);
+  --overlay-scrim: oklch(0.22 0.011 265 / 0.28);
+  --overlay-material: oklch(1 0 0 / 0.78);
+  --focus-ring: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--brand);
+  /* NOVO: tinta da quadrícula da prancheta */
+  --grid-ink: oklch(0.205 0.008 75 / 0.045);
+  --brand-gradient: linear-gradient(90deg, #ff7d22 0%, #ff6a00 100%);
+  /* NOVO: tinta sobre o laranja. Branco dá 2,87:1 (reprova); grafite dá 6,06:1. */
+  --text-on-brand: oklch(0.205 0.008 75);
+
+  /* Raio: só quatro valores */
+  --radius-xs: 6px;
+  --radius-control: 9px;
+  --radius-card: 12px;
+  --radius-sheet: 16px;
+
+  /* Espaço: só 4 / 8 / 12 / 16 / 24 / 32 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Tipo: escala fixa 11 / 12 / 13 / 15 / 19 / 28 */
+  --text-micro: 0.6875rem;
+  --text-small: 0.75rem;
+  --text-body: 0.8125rem;
+  --text-read: 0.9375rem;
+  --text-title: 1.1875rem;
+  --text-display: 1.75rem;
+
+  /* Proposta: Archivo só em títulos e números de KPI; Inter no corpo e na grade */
+  --font-display: 'Archivo', 'Archivo Narrow', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-ui: 'Inter', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --rail-w: 64px;
+  --topbar-h: 52px;
+  --control-h: 32px;
+  --control-h-sm: 26px;
+
+  /* Séries da Curva S (validadas com o script do dataviz, ver relatório) */
+  --series-planned: var(--sched-baseline);
+  --series-replanned: var(--text-2);
+  --series-actual: var(--brand);
+  /* NOVO: tokens de papel para o relatório impresso */
+  --paper: oklch(1 0 0);
+  --paper-ink: var(--text-1);
+  --paper-ink-2: var(--text-2);
+  --paper-line: var(--line-hairline);
+  --paper-line-strong: var(--line-strong);
+  --paper-tint: var(--surface-2);
+  --paper-inset: var(--surface-inset);
+  --desk: oklch(0.885 0.009 90);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font: 400 var(--text-body)/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0; }
+ul, ol { padding: 0; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+svg { display: block; }
+.num { font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+:focus { outline: none; }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.icon { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.icon--sm { width: 14px; height: 14px; }
+
+/* Label (micro, caixa alta): o único rótulo de campo do sistema */
+.label {
+  font: 600 var(--text-micro)/1.2 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* ── Button ───────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  height: var(--control-h); padding: 0 var(--space-3);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  background: var(--surface-1); color: var(--text-1);
+  font: 500 var(--text-body)/1 var(--font-ui); white-space: nowrap; text-decoration: none;
+  transition: background var(--dur-1) var(--ease-standard), border-color var(--dur-1) var(--ease-standard);
+}
+.btn:hover { background: var(--surface-3); }
+.btn--primary { background: var(--brand); border-color: transparent; color: var(--text-on-brand); font-weight: 600; }
+.btn--primary:hover { background: var(--brand-hover); }
+.btn--ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+.btn--ghost:hover { background: var(--surface-3); color: var(--text-1); }
+.btn--sm { height: var(--control-h-sm); padding: 0 var(--space-2); font-size: var(--text-small); }
+.btn--block { width: 100%; }
+
+/* ── Panel + SectionHeader ────────────────────────────── */
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--line-hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  min-width: 0;
+}
+.section-header { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin-bottom: var(--space-3); min-width: 0; }
+.section-header__index { font: 600 var(--text-micro)/1 var(--font-ui); color: var(--text-2); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.section-header__title { font: 600 var(--text-read)/1.25 var(--font-display); font-stretch: 96%; letter-spacing: -0.005em; color: var(--text-1); }
+.section-header__hint { font-size: var(--text-small); color: var(--text-2); }
+.section-header__action {
+  margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-xs);
+  font: 500 var(--text-small)/1.2 var(--font-ui); color: var(--text-2); text-decoration: none; white-space: nowrap;
+}
+.section-header__action:hover { background: var(--surface-3); color: var(--text-1); }
+
+/* ── StatusPill (rótulo em tinta de texto + ponto na cor do estado) ── */
+.pill {
+  --pill: var(--sched-not-started); --pill-soft: var(--sched-not-started-soft);
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  height: 20px; padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--pill-soft); color: var(--text-1);
+  font: 500 var(--text-micro)/1 var(--font-ui); white-space: nowrap;
+}
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pill); flex: none; }
+.pill[data-state="on-track"] { --pill: var(--sched-on-track); --pill-soft: var(--sched-on-track-soft); }
+.pill[data-state="at-risk"]  { --pill: var(--sched-at-risk);  --pill-soft: var(--sched-at-risk-soft); }
+.pill[data-state="late"]     { --pill: var(--sched-late);     --pill-soft: var(--sched-late-soft); }
+.pill[data-state="done"]     { --pill: var(--sched-done);     --pill-soft: var(--sched-done-soft); }
+.pill[data-state="critical"] { --pill: var(--sched-critical); --pill-soft: var(--sched-critical-soft); }
+
+/* ── Chip (responsável, prazo) ────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  height: 22px; padding: 0 var(--space-2) 0 var(--space-1);
+  border: 1px solid var(--line-hairline); border-radius: var(--radius-xs);
+  background: var(--surface-2); color: var(--text-1);
+  font: 500 var(--text-small)/1 var(--font-ui); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.chip .icon { width: 12px; height: 12px; color: var(--text-2); margin-left: 2px; }
+.chip--late { border-color: var(--sched-late); background: var(--surface-1); color: var(--sched-late); font-weight: 600; }
+.chip--late .icon { color: var(--sched-late); }
+.avatar {
+  display: inline-grid; place-items: center; flex: none;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--surface-inset); color: var(--text-1);
+  font: 600 var(--text-micro)/1 var(--font-ui); letter-spacing: 0.02em;
+}
+
+/* ── KpiTile (uma só) ─────────────────────────────────── */
+.kpi-strip {
+  display: grid; grid-template-columns: repeat(var(--kpi-cols, 6), minmax(0, 1fr));
+  gap: 1px; background: var(--line-hairline);
+  border: 1px solid var(--line-hairline); border-radius: var(--radius-card); overflow: hidden;
+}
+.kpi { background: var(--surface-1); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.kpi__value {
+  font: 600 var(--text-display)/1.1 var(--font-display); font-stretch: 92%;
+  letter-spacing: -0.01em; color: var(--text-1); white-space: nowrap;
+}
+.kpi__value small { font: 500 var(--text-read)/1 var(--font-display); font-stretch: 92%; color: var(--text-2); margin-left: 2px; letter-spacing: 0; }
+.kpi__value[data-tone="late"] { color: var(--sched-late); }
+.kpi__foot { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-2); font-size: var(--text-small); color: var(--text-2); min-height: 20px; }
+.progress { height: 4px; background: var(--surface-inset); overflow: hidden; flex: 1; min-width: 48px; }
+.progress > span { display: block; height: 100%; background: var(--brand); }
+
+/* ── Carimbo (PageHeader como bloco de título) ────────── */
+.carimbo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(160px, max-content));
+  gap: 1px; background: var(--line-hairline);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-card); overflow: hidden;
+}
+.carimbo__title {
+  grid-row: 1 / span 2; background-color: var(--surface-1);
+  background-image:
+    linear-gradient(var(--grid-ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+  background-size: 16px 16px;
+  padding: var(--space-4) var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-1); min-width: 0;
+}
+.carimbo__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.carimbo__actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.carimbo h1 {
+  font: 650 var(--text-display)/1.1 var(--font-display); font-stretch: 88%;
+  letter-spacing: -0.015em; color: var(--text-1); margin-top: var(--space-1);
+}
+.carimbo__sub { font-size: var(--text-body); color: var(--text-2); }
+.carimbo__cell { background: var(--surface-1); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; justify-content: center; gap: var(--space-1); min-width: 0; }
+.carimbo__value { font: 500 var(--text-body)/1.35 var(--font-ui); color: var(--text-1); font-variant-numeric: tabular-nums; }
+.carimbo--compact .carimbo__title { padding-top: var(--space-3); padding-bottom: var(--space-3); }
+
+/* ── EmptyState ───────────────────────────────────────── */
+.empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-2);
+  padding: var(--space-5) var(--space-4); border-radius: var(--radius-control);
+  background: var(--surface-2); border: 1px solid var(--line-hairline);
+}
+.empty__icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--radius-control); background: var(--surface-1); border: 1px solid var(--line-hairline); color: var(--text-2); }
+.empty__title { font: 600 var(--text-body)/1.3 var(--font-ui); color: var(--text-1); }
+.empty__text { font-size: var(--text-small); color: var(--text-2); max-width: 36ch; }
+
+/* ── ActionRow (uma só: Visão Geral, Atas, painel de ações) ── */
+.arow { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: var(--space-2) var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--line-hairline); }
+.arow:last-child { border-bottom: 0; }
+.arow__check { width: 16px; height: 16px; margin-top: 2px; border-radius: 50%; border: 1.5px solid var(--text-2); background: transparent; padding: 0; display: grid; place-items: center; }
+.arow__check:hover { border-color: var(--text-1); }
+.arow__check .icon { width: 10px; height: 10px; stroke-width: 3; color: var(--surface-1); opacity: 0; }
+.arow.is-done .arow__check { background: var(--sched-done); border-color: var(--sched-done); }
+.arow.is-done .arow__check .icon { opacity: 1; }
+.arow__text { color: var(--text-1); font-size: var(--text-body); }
+.arow__carry { display: block; font-size: var(--text-small); color: var(--text-2); margin-top: 2px; }
+.arow.is-done .arow__text { color: var(--text-2); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.arow__meta { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.arow__src { font-size: var(--text-micro); color: var(--text-2); }
+.arow__link { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1); font: 500 var(--text-small)/1 var(--font-ui); color: var(--text-2); text-decoration: none; padding: var(--space-1); border-radius: var(--radius-xs); white-space: nowrap; }
+.arow__link:hover { color: var(--text-1); background: var(--surface-3); }
+.arow__link .icon { width: 12px; height: 12px; }
+.arow--compact .arow__link { margin-left: 0; }
+
+/* ── Legend (chave de linha para séries de linha) ─────── */
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); font-size: var(--text-small); color: var(--text-2); }
+.legend__item { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.legend__line { width: 16px; height: 0; border-top: 2px solid currentColor; }
+.legend__line--dash { border-top-style: dashed; }
+.legend__swatch { width: 10px; height: 10px; flex: none; }
+
+/* ── Curva S (SVG) ────────────────────────────────────── */
+.sc text { font-family: var(--font-ui); font-size: 11px; fill: var(--text-2); font-variant-numeric: tabular-nums; }
+.sc .t-strong { fill: var(--text-1); font-weight: 600; }
+.sc .t-row { fill: var(--text-2); font-weight: 500; }
+.sc .grid { stroke: var(--line-hairline); stroke-width: 1; shape-rendering: crispEdges; }
+.sc .axis { stroke: var(--line-strong); stroke-width: 1; shape-rendering: crispEdges; }
+.sc .forecast { fill: var(--surface-3); opacity: 0.7; }
+.sc .cut { stroke: var(--text-2); stroke-width: 1; shape-rendering: crispEdges; }
+.sc .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.sc .ln-planned { stroke: var(--series-planned); }
+.sc .ln-replanned { stroke: var(--series-replanned); }
+.sc .ln-actual { stroke: var(--series-actual); }
+.sc .ln-est { stroke-dasharray: 4 4; stroke-linecap: butt; }
+.sc .mk-actual { fill: var(--series-actual); stroke: var(--sc-surface, var(--surface-1)); stroke-width: 2; }
+.sc .mk-replanned { fill: var(--sc-surface, var(--surface-1)); stroke: var(--series-replanned); stroke-width: 2; }
+.sc .key-planned { stroke: var(--series-planned); stroke-width: 2; }
+.sc .key-replanned { stroke: var(--series-replanned); stroke-width: 2; }
+.sc .key-actual { stroke: var(--series-actual); stroke-width: 2; }
+.sc .rule { stroke: var(--line-hairline); stroke-width: 1; shape-rendering: crispEdges; }
+.sc .hover-line { stroke: var(--text-2); stroke-width: 1; shape-rendering: crispEdges; }
+.k-planned { color: var(--series-planned); }
+.k-replanned { color: var(--series-replanned); }
+.k-actual { color: var(--series-actual); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.reveal { animation: rise var(--dur-3) var(--ease-standard) both; animation-delay: calc(var(--i, 0) * 40ms); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  .pill::before, .progress > span { forced-color-adjust: none; }
+}
+
+
+html { background: var(--desk); }
+body {
+  background-color: var(--desk);
+  background-image:
+    linear-gradient(var(--grid-ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
+  background-size: 32px 32px;
+  min-height: 100vh;
+}
+.toolbar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+  padding: var(--space-3) var(--space-5);
+  background: var(--surface-1); border-bottom: 1px solid var(--line-hairline);
+}
+.toolbar__logo { width: 28px; height: 28px; }
+.toolbar__logo svg { width: 28px; height: 28px; }
+.toolbar__crumb { display: flex; align-items: center; gap: var(--space-1); color: var(--text-2); font-size: var(--text-body); white-space: nowrap; }
+.toolbar__crumb strong { color: var(--text-1); font-weight: 600; }
+.toolbar__crumb .icon { width: 12px; height: 12px; }
+.toolbar__actions { margin-left: auto; display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.desk { padding: var(--space-6) var(--space-4); overflow-x: auto; }
+.desk-note { text-align: center; font-size: var(--text-small); color: var(--text-2); margin-top: var(--space-4); }
+
+.sheet {
+  width: 210mm; height: 297mm; margin: 0 auto; overflow: hidden;
+  background: var(--paper); color: var(--paper-ink);
+  padding: var(--space-5) var(--space-6) var(--space-4);
+  box-shadow: var(--elev-4);
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.sheet .section-header { margin-bottom: var(--space-1); }
+
+/* Faixa de título */
+.band {
+  display: flex; align-items: stretch; gap: var(--space-3);
+  background: var(--brand-gradient); color: var(--text-on-brand);
+  border-radius: var(--radius-card); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5);
+  min-height: 92px;
+}
+.band__text { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: var(--space-1); }
+.band__eyebrow { font: 600 var(--text-micro)/1.2 var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase; }
+.band h1 { font: 800 var(--text-display)/1.05 var(--font-display); font-stretch: 70%; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.005em; }
+.band__sub { font: 600 var(--text-small)/1.2 var(--font-ui); letter-spacing: 0.08em; text-transform: uppercase; }
+.plate { background: var(--paper); border-radius: var(--radius-control); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: var(--space-2); color: var(--paper-ink); flex: none; }
+.plate .label { color: var(--paper-ink-2); }
+.gauge__track { fill: none; stroke: var(--paper-inset); stroke-width: 10; }
+.gauge__fill { fill: none; stroke: var(--paper-ink); stroke-width: 10; }
+.gauge__plan { stroke: var(--brand); stroke-width: 2; }
+.gauge__value { font: 700 var(--text-display) var(--font-display); font-stretch: 88%; fill: var(--paper-ink); }
+.client-logo { width: 96px; }
+.client-logo svg { width: 72px; height: 33px; }
+.ph-logo-bg { fill: var(--paper-tint); stroke: var(--paper-line-strong); }
+.ph-logo-mark { fill: none; stroke: var(--paper-ink-2); stroke-width: 1.5; }
+
+/* Linha do tempo (carimbo do relatório) */
+.tl { display: grid; grid-template-columns: repeat(7, minmax(max-content, 1fr)); gap: 1px; background: var(--paper-line); border: 1px solid var(--paper-line-strong); border-radius: var(--radius-card); overflow: hidden; }
+.tl .label { letter-spacing: 0.04em; white-space: nowrap; }
+.tl__cell { background: var(--paper); padding: var(--space-2); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tl__value { font: 600 var(--text-title)/1.15 var(--font-display); font-stretch: 90%; white-space: nowrap; color: var(--paper-ink); }
+.tl__value small { font: 500 var(--text-small)/1 var(--font-ui); color: var(--paper-ink-2); margin-left: 2px; }
+.tl__value[data-tone="late"] { color: var(--sched-late); }
+.tl__sub { font-size: var(--text-micro); color: var(--paper-ink-2); white-space: nowrap; }
+.tl__cell--key { background: var(--paper-tint); }
+
+/* Gantt */
+.gt text { font-family: var(--font-ui); font-size: 11px; fill: var(--paper-ink-2); font-variant-numeric: tabular-nums; }
+.gt .t-name { fill: var(--paper-ink); }
+.gt .t-strong { fill: var(--paper-ink); font-weight: 600; }
+.gt .t-row { fill: var(--paper-ink-2); font-weight: 600; font-size: 11px; letter-spacing: 0.04em; }
+.gt .grid { stroke: var(--paper-line); shape-rendering: crispEdges; }
+.gt .rule { stroke: var(--paper-line); shape-rendering: crispEdges; }
+.gt .cut { stroke: var(--paper-ink-2); shape-rendering: crispEdges; }
+.gt .bar-done { fill: var(--paper-ink); }
+.gt .bar-rest { fill: var(--paper-inset); }
+.gt .bar-late { fill: var(--sched-late); fill-opacity: 0.32; }
+.gt .mk-forecast { fill: var(--paper); stroke: var(--paper-ink); stroke-width: 1.5; }
+.sw-done { background: var(--paper-ink); }
+.sw-rest { background: var(--paper-inset); }
+.sw-late { background: var(--sched-late); opacity: 0.32; }
+.sw-cut { width: 0; height: 12px; border-left: 1px solid var(--paper-ink-2); }
+.sw-diamond { width: 8px; height: 8px; transform: rotate(45deg); border: 1.5px solid var(--paper-ink); background: var(--paper); margin: 0 1px; }
+.sheet .sc { --sc-surface: var(--paper); }
+.sheet .sc .forecast { fill: var(--paper-tint); opacity: 1; }
+
+/* Rodapé de seções */
+.bottom { display: grid; grid-template-columns: 284px minmax(0, 1fr); gap: var(--space-5); min-height: 0; flex: 1; }
+.photos { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); align-content: start; }
+.photo { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.photo--wide { grid-column: 1 / -1; }
+.photo svg { width: 100%; height: auto; border-radius: var(--radius-xs); }
+.photo figcaption { font-size: var(--text-micro); line-height: 1.3; color: var(--paper-ink-2); }
+.photo figcaption strong { color: var(--paper-ink); font-weight: 600; }
+.ph-bg { fill: var(--paper-tint); }
+.ph-hatch { stroke: var(--paper-line); stroke-width: 1; }
+.ph-floor { fill: var(--paper-inset); }
+.ph-a { fill: var(--sched-baseline); fill-opacity: 0.55; }
+.ph-b { fill: var(--paper-ink-2); fill-opacity: 0.55; }
+.ph-line { stroke: var(--paper); stroke-width: 1.5; fill: none; opacity: 0.8; }
+.ph-pipe { stroke: var(--paper-ink-2); stroke-opacity: 0.6; stroke-width: 6; fill: none; }
+.ph-pipe--thin { stroke-width: 3; }
+.ph-insul { stroke: var(--sched-baseline); stroke-opacity: 0.6; stroke-width: 30; fill: none; }
+.ph-insul--thin { stroke-width: 16; }
+.ph-ring { stroke: var(--paper); stroke-width: 2; opacity: 0.85; fill: none; }
+.ph-gauge { fill: var(--paper); stroke: var(--paper-ink-2); stroke-width: 2; }
+
+.notes { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.notes .section-header { margin-bottom: var(--space-1); }
+.notes ul { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.notes li { position: relative; padding-left: var(--space-3); font-size: var(--text-micro); line-height: 1.4; color: var(--paper-ink); }
+.notes li::before { content: ""; position: absolute; left: 2px; top: 6px; width: 4px; height: 4px; background: var(--paper-ink-2); }
+.actions-opr { display: flex; flex-direction: column; border-top: 1px solid var(--paper-line); }
+.actions-opr li { padding: var(--space-1) 0 var(--space-1) var(--space-5); border-bottom: 1px solid var(--paper-line); }
+.actions-opr li::before { top: 8px; left: 2px; width: 10px; height: 10px; background: none; border: 1.5px solid var(--paper-ink-2); border-radius: 50%; }
+.actions-opr .meta { display: block; color: var(--paper-ink-2); font-variant-numeric: tabular-nums; }
+.actions-opr .late { color: var(--sched-late); font-weight: 600; }
+.notes__source { font-size: var(--text-micro); color: var(--paper-ink-2); margin-top: var(--space-1); }
+
+.foot { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--space-4); border-top: 1px solid var(--paper-line-strong); padding-top: var(--space-2); }
+.foot__client { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-micro); color: var(--paper-ink-2); line-height: 1.3; }
+.foot__client svg { width: 72px; height: 28px; flex: none; }
+.foot__slogan { font: 700 var(--text-title)/1 var(--font-display); font-stretch: 80%; letter-spacing: -0.005em; color: var(--paper-ink); text-align: center; white-space: nowrap; }
+.foot__gen { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); font-size: var(--text-micro); color: var(--paper-ink-2); text-align: right; line-height: 1.3; }
+.foot__gen svg { width: 20px; height: 20px; flex: none; }
+.foot__gen strong { color: var(--paper-ink); font-weight: 600; }
+
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  html, body { background: none; }
+  .toolbar, .desk-note { display: none !important; }
+  .desk { padding: 0; overflow: visible; }
+  html, body { height: 297mm; min-height: 0; overflow: hidden; }
+  .sheet { margin: 0; height: 296.5mm; box-shadow: none; break-inside: avoid; page-break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .reveal { animation: none; }
+}
+@media (max-width: 860px) {
+  .toolbar { padding: var(--space-2) var(--space-3); }
+  .desk { padding: var(--space-4) var(--space-2); }
+}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol><symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol><symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol></defs></svg>
+<header class="toolbar">
+  <span class="toolbar__logo" aria-hidden="true"><svg viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="256" height="256" rx="56" fill="#F7F7F5"/>
+  <path d="M55 54H137C175.66 54 207 85.34 207 124C207 162.66 175.66 194 137 194H93V154H137C153.569 154 167 140.569 167 124C167 107.431 153.569 94 137 94H95V194H55V54Z" fill="#1A1A1A"/>
+  <path d="M55 194L113 136L142 165L113 194H55Z" fill="#FF6A00"/>
+  <path d="M55 194H205" stroke="#FF6A00" stroke-width="10" stroke-linecap="round"/>
+</svg></span>
+  <nav class="toolbar__crumb" aria-label="Trilha">Compressor C-210 <svg class="icon " aria-hidden="true" focusable="false"><use href="#i-chev"/></svg> Relatórios <svg class="icon " aria-hidden="true" focusable="false"><use href="#i-chev"/></svg> <strong>OPR nº 08 · 27/10/2026 16:30</strong></nav>
+  <span class="pill" data-state="done">Publicada · imutável</span>
+  <div class="toolbar__actions">
+    <button class="btn btn--ghost" type="button"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-history"/></svg>Histórico de OPRs</button>
+    <button class="btn" type="button"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-download"/></svg>Baixar PDF</button>
+    <button class="btn btn--primary" type="button" onclick="window.print()"><svg class="icon " aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>Imprimir</button>
+  </div>
+</header>
+<main class="desk">
+<article class="sheet" aria-label="One Page Report, folha A4">
+
+  <header class="band reveal" style="--i:0">
+    <div class="band__text">
+      <span class="band__eyebrow">One Page Report · OPR nº 08</span>
+      <h1>Restauração do Compressor C-210</h1>
+      <span class="band__sub">Manutenção · Utilidades · Outubro de 2026</span>
+    </div>
+    <div class="plate">
+      <svg class="gauge" viewBox="0 0 120 64" width="120" height="64" role="img" aria-label="Realizado 94% contra 97% planejado">
+  <path class="gauge__track" d="M18 56 A42 42 0 0 1 102 56"/>
+  <path class="gauge__fill" d="M18 56 A42 42 0 0 1 101.3 48.1"/>
+  <line class="gauge__plan" x1="93.8" y1="52.8" x2="109.8" y2="51.3"/>
+  <text class="gauge__value" x="60" y="54" text-anchor="middle">94%</text>
+</svg>
+      <span class="label">Realizado</span>
+    </div>
+    <div class="plate client-logo">
+      <svg viewBox="0 0 88 40" width="88" height="40" aria-hidden="true">
+  <rect x="0.5" y="0.5" width="87" height="39" rx="6" class="ph-logo-bg"/>
+  <path d="M14 28 22 12l8 16Z" class="ph-logo-mark"/><path d="M36 16h38M36 22h30M36 28h22" class="ph-logo-mark"/>
+</svg>
+      <span class="label">Logo do cliente</span>
+    </div>
+  </header>
+
+  <section class="reveal" style="--i:1" aria-labelledby="s-tl">
+    <div class="section-header"><span class="section-header__index">01</span><h2 class="section-header__title" id="s-tl">Linha do tempo do projeto</h2><span class="section-header__hint num">Atualização em 27/10 às 16:30</span></div>
+    <div class="tl">
+      <div class="tl__cell"><span class="label">Início</span><span class="tl__value num">29/09<small>08:00</small></span></div>
+      <div class="tl__cell"><span class="label">Término</span><span class="tl__value num">27/10<small>19:00</small></span></div>
+      <div class="tl__cell tl__cell--key"><span class="label">%&nbsp;Planejado</span><span class="tl__value">97%</span><span class="tl__sub">na data de corte</span></div>
+      <div class="tl__cell tl__cell--key"><span class="label">Desvio</span><span class="tl__value" data-tone="late">−3<small>p.p.</small></span><span class="tl__sub">Real. − Plan.</span></div>
+      <div class="tl__cell tl__cell--key"><span class="label">%&nbsp;Realizado</span><span class="tl__value">94%</span><span class="tl__sub">SPI 0,97</span></div>
+      <div class="tl__cell"><span class="label">Início real</span><span class="tl__value num">29/09<small>08:00</small></span></div>
+      <div class="tl__cell"><span class="label">Término real</span><span class="tl__value num">28/10<small>12:00</small></span><span class="tl__sub">previsto · +17 h</span></div>
+    </div>
+  </section>
+
+  <section class="reveal" style="--i:2" aria-labelledby="s-gt">
+    <div class="section-header"><span class="section-header__index">02</span><h2 class="section-header__title" id="s-gt">Gantt por fases</h2>
+      <div class="legend" style="margin-left:auto">
+        <span class="legend__item"><span class="legend__swatch sw-done"></span>Concluído</span>
+        <span class="legend__item"><span class="legend__swatch sw-rest"></span>Restante</span>
+        <span class="legend__item"><span class="legend__swatch sw-late"></span>Atrasado no corte</span>
+        <span class="legend__item"><span class="sw-diamond"></span>Término previsto</span>
+      </div>
+    </div>
+    <svg class="gt" viewBox="0 0 728 164" width="728" height="164" role="img" aria-labelledby="gt-t gt-d">
+<title id="gt-t">Gantt por fases</title><desc id="gt-d">Oito tarefas de nível 0 com barra planejada, parte concluída em cheio e restante em tom claro. Fase 05 com 64% e Fase 06 com 17% estão atrás do plano na data de corte 27/10 16:30.</desc>
+<line class="grid" x1="222" x2="222" y1="12" y2="146"/>
+<text x="222" y="10" text-anchor="start" dy="1">29/09</text>
+<line class="grid" x1="329.8" x2="329.8" y1="12" y2="146"/>
+<text x="329.8" y="10" text-anchor="middle" dy="1">06/10</text>
+<line class="grid" x1="437.6" x2="437.6" y1="12" y2="146"/>
+<text x="437.6" y="10" text-anchor="middle" dy="1">13/10</text>
+<line class="grid" x1="545.4" x2="545.4" y1="12" y2="146"/>
+<text x="545.4" y="10" text-anchor="middle" dy="1">20/10</text>
+<line class="grid" x1="653.2" x2="653.2" y1="12" y2="146"/>
+<text x="653.2" y="10" text-anchor="middle" dy="1">27/10</text>
+<text x="0" y="11" class="t-row">Tarefa de nível 0</text>
+<text x="728" y="11" text-anchor="end" class="t-row">%</text>
+<line class="rule" x1="0" x2="728" y1="18" y2="18"/>
+<text x="0" y="29.5" class="t-strong">Bloqueio e liberação</text>
+<rect class="bar-done" x="227.1" y="22" width="6.5" height="8"/>
+<text x="728" y="29.5" text-anchor="end" class="">100%</text>
+<line class="rule" x1="0" x2="728" y1="34" y2="34"/>
+<text x="0" y="45.5" class="t-name">Fase 01 — Desmontagem dos periféricos</text>
+<rect class="bar-done" x="242.5" y="38" width="129.7" height="8"/>
+<text x="728" y="45.5" text-anchor="end" class="">100%</text>
+<line class="rule" x1="0" x2="728" y1="50" y2="50"/>
+<text x="0" y="61.5" class="t-name">Fase 02 — Estanqueidade e vácuo</text>
+<rect class="bar-done" x="365.7" y="54" width="98.9" height="8"/>
+<text x="728" y="61.5" text-anchor="end" class="">100%</text>
+<line class="rule" x1="0" x2="728" y1="66" y2="66"/>
+<text x="0" y="77.5" class="t-name">Fase 03 — Isolamento térmico</text>
+<rect class="bar-done" x="458.1" y="70" width="83.5" height="8"/>
+<text x="728" y="77.5" text-anchor="end" class="">100%</text>
+<line class="rule" x1="0" x2="728" y1="82" y2="82"/>
+<text x="0" y="93.5" class="t-name">Fase 04 — Carga de fluido</text>
+<rect class="bar-done" x="488.9" y="86" width="68.1" height="8"/>
+<text x="728" y="93.5" text-anchor="end" class="">100%</text>
+<line class="rule" x1="0" x2="728" y1="98" y2="98"/>
+<text x="0" y="109.5" class="t-name">Fase 05 — Comissionamento elétrico</text>
+<rect class="bar-done" x="550.5" y="102" width="43.6" height="8"/>
+<rect class="bar-late" x="596.1" y="102" width="22.5" height="8"/>
+<text x="728" y="109.5" text-anchor="end" class="t-strong">64%</text>
+<line class="rule" x1="0" x2="728" y1="114" y2="114"/>
+<text x="0" y="125.5" class="t-name">Fase 06 — 5S e desmobilização</text>
+<rect class="bar-done" x="596.7" y="118" width="11.6" height="8"/>
+<rect class="bar-late" x="610.3" y="118" width="53.5" height="8"/>
+<rect class="bar-rest" x="663.8" y="118" width="1" height="8"/>
+<text x="728" y="125.5" text-anchor="end" class="t-strong">17%</text>
+<line class="rule" x1="0" x2="728" y1="130" y2="130"/>
+<text x="0" y="141.5" class="t-strong">Desbloqueio e retorno</text>
+<rect class="bar-rest" x="664.1" y="134" width="4" height="8"/>
+<text x="728" y="141.5" text-anchor="end" class="t-strong">0%</text>
+<line class="rule" x1="0" x2="728" y1="146" y2="146"/>
+<path class="mk-forecast" d="M676.3 133 L681.3 138 L676.3 143 L671.3 138 Z"/>
+<line class="cut" x1="663.8" x2="663.8" y1="12" y2="150"/>
+<text x="659.8" y="160" text-anchor="end">Corte 27/10 16:30</text>
+</svg>
+  </section>
+
+  <section class="reveal" style="--i:3" aria-labelledby="s-sc">
+    <div class="section-header"><span class="section-header__index">03</span><h2 class="section-header__title" id="s-sc">Curva S</h2>
+      <div class="legend" style="margin-left:auto">
+        <span class="legend__item k-planned"><span class="legend__line"></span><span style="color:var(--paper-ink-2)">Planejado</span></span>
+        <span class="legend__item k-replanned"><span class="legend__line"></span><span style="color:var(--paper-ink-2)">Replanejado</span></span>
+        <span class="legend__item k-actual"><span class="legend__line"></span><span style="color:var(--paper-ink-2)">Realizado</span></span>
+        <span class="legend__item k-actual"><span class="legend__line legend__line--dash"></span><span style="color:var(--paper-ink-2)">Estimado antes de 08/10</span></span>
+      </div>
+    </div>
+    <svg class="sc" id="opr-sc" viewBox="0 0 728 194" width="728" height="194" style="--sc-surface: var(--paper)" role="img" aria-labelledby="opr-sc-t">
+<title id="opr-sc-t">Curva S: Planejado, Replanejado e Realizado por data de corte</title>
+<rect class="forecast" x="684.2" y="22" width="43.6" height="172"/>
+<line class="axis" x1="92" x2="727.8" y1="118" y2="118"/>
+<text x="84" y="122" text-anchor="end">0%</text>
+<line class="grid" x1="92" x2="727.8" y1="94" y2="94"/>
+<text x="84" y="98" text-anchor="end">25%</text>
+<line class="grid" x1="92" x2="727.8" y1="70" y2="70"/>
+<text x="84" y="74" text-anchor="end">50%</text>
+<line class="grid" x1="92" x2="727.8" y1="46" y2="46"/>
+<text x="84" y="50" text-anchor="end">75%</text>
+<line class="grid" x1="92" x2="727.8" y1="22" y2="22"/>
+<text x="84" y="26" text-anchor="end">100%</text>
+<line class="cut" x1="662.4" x2="662.4" y1="22" y2="118"/>
+<text x="656.4" y="110" text-anchor="end">Corte 27/10 16:30</text>
+<text x="688.2" y="110" text-anchor="start">prev.</text>
+<text x="96" y="134" text-anchor="middle">29/09</text>
+<text x="139.6" y="134" text-anchor="middle">08/10</text>
+<text x="183.1" y="134" text-anchor="middle">09/10</text>
+<text x="226.7" y="134" text-anchor="middle">13/10</text>
+<text x="270.3" y="134" text-anchor="middle">14/10</text>
+<text x="313.9" y="134" text-anchor="middle">15/10</text>
+<text x="357.4" y="134" text-anchor="middle">16/10</text>
+<text x="401" y="134" text-anchor="middle">19/10</text>
+<text x="444.6" y="134" text-anchor="middle">20/10</text>
+<text x="488.1" y="134" text-anchor="middle">21/10</text>
+<text x="531.7" y="134" text-anchor="middle">22/10</text>
+<text x="575.3" y="134" text-anchor="middle">23/10</text>
+<text x="618.9" y="134" text-anchor="middle">26/10</text>
+<text x="662.4" y="134" text-anchor="middle" class="t-strong">27/10</text>
+<text x="706" y="134" text-anchor="middle">28/10</text>
+<polyline class="ln ln-planned" points="96,118 139.6,77.7 183.1,72.9 226.7,67.1 270.3,58.5 313.9,50.8 357.4,42.2 401,36.4 444.6,33.5 488.1,31.6 531.7,29.7 575.3,27.8 618.9,25.8 662.4,24.9"/>
+<polyline class="ln ln-replanned" points="488.1,47.9 531.7,42.2 575.3,35.4 618.9,29.7 662.4,25.8 706,22"/>
+<polyline class="ln ln-actual ln-est" points="96,118 139.6,85.4"/>
+<polyline class="ln ln-actual" points="139.6,85.4 183.1,85.4 226.7,85.4 270.3,85.4 313.9,85.4 357.4,73.8 401,62.3 444.6,57.5 488.1,47.9 531.7,43.1 575.3,39.3 618.9,32.6 662.4,27.8"/>
+<circle class="mk-replanned" cx="488.1" cy="47.9" r="4"/>
+<circle class="mk-replanned" cx="531.7" cy="42.2" r="4"/>
+<circle class="mk-replanned" cx="575.3" cy="35.4" r="4"/>
+<circle class="mk-replanned" cx="618.9" cy="29.7" r="4"/>
+<circle class="mk-replanned" cx="662.4" cy="25.8" r="4"/>
+<circle class="mk-replanned" cx="706" cy="22" r="4"/>
+<circle class="mk-actual" cx="139.6" cy="85.4" r="5"/>
+<circle class="mk-actual" cx="183.1" cy="85.4" r="5"/>
+<circle class="mk-actual" cx="226.7" cy="85.4" r="5"/>
+<circle class="mk-actual" cx="270.3" cy="85.4" r="5"/>
+<circle class="mk-actual" cx="313.9" cy="85.4" r="5"/>
+<circle class="mk-actual" cx="357.4" cy="73.8" r="5"/>
+<circle class="mk-actual" cx="401" cy="62.3" r="5"/>
+<circle class="mk-actual" cx="444.6" cy="57.5" r="5"/>
+<circle class="mk-actual" cx="488.1" cy="47.9" r="5"/>
+<circle class="mk-actual" cx="531.7" cy="43.1" r="5"/>
+<circle class="mk-actual" cx="575.3" cy="39.3" r="5"/>
+<circle class="mk-actual" cx="618.9" cy="32.6" r="5"/>
+<circle class="mk-actual" cx="662.4" cy="27.8" r="5"/>
+<text class="t-row" x="652.4" y="17.9" text-anchor="end">Plan. 97%</text>
+<text class="t-strong" x="670.4" y="42.8" text-anchor="start">Real. 94%</text>
+<text class="t-row" x="706" y="13" text-anchor="middle">100%</text>
+<line class="rule" x1="0" x2="727.8" y1="140" y2="140"/>
+<line class="key-planned" x1="0" x2="12" y1="151.5" y2="151.5"/>
+<text class="t-row" x="18" y="155.5">Planejado</text>
+<text x="96" y="155.5" text-anchor="middle">0%</text>
+<text x="139.6" y="155.5" text-anchor="middle">42%</text>
+<text x="183.1" y="155.5" text-anchor="middle">47%</text>
+<text x="226.7" y="155.5" text-anchor="middle">53%</text>
+<text x="270.3" y="155.5" text-anchor="middle">62%</text>
+<text x="313.9" y="155.5" text-anchor="middle">70%</text>
+<text x="357.4" y="155.5" text-anchor="middle">79%</text>
+<text x="401" y="155.5" text-anchor="middle">85%</text>
+<text x="444.6" y="155.5" text-anchor="middle">88%</text>
+<text x="488.1" y="155.5" text-anchor="middle">90%</text>
+<text x="531.7" y="155.5" text-anchor="middle">92%</text>
+<text x="575.3" y="155.5" text-anchor="middle">94%</text>
+<text x="618.9" y="155.5" text-anchor="middle">96%</text>
+<text x="662.4" y="155.5" text-anchor="middle">97%</text>
+<line class="rule" x1="0" x2="727.8" y1="156" y2="156"/>
+<line class="key-replanned" x1="0" x2="12" y1="167.5" y2="167.5"/>
+<text class="t-row" x="18" y="171.5">Replanejado</text>
+<text x="488.1" y="171.5" text-anchor="middle">73%</text>
+<text x="531.7" y="171.5" text-anchor="middle">79%</text>
+<text x="575.3" y="171.5" text-anchor="middle">86%</text>
+<text x="618.9" y="171.5" text-anchor="middle">92%</text>
+<text x="662.4" y="171.5" text-anchor="middle">96%</text>
+<text x="706" y="171.5" text-anchor="middle">100%</text>
+<line class="rule" x1="0" x2="727.8" y1="172" y2="172"/>
+<line class="key-actual" x1="0" x2="12" y1="183.5" y2="183.5"/>
+<text class="t-row" x="18" y="187.5">Realizado</text>
+<text x="96" y="187.5" text-anchor="middle" class="t-strong">0%</text>
+<text x="139.6" y="187.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="183.1" y="187.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="226.7" y="187.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="270.3" y="187.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="313.9" y="187.5" text-anchor="middle" class="t-strong">34%</text>
+<text x="357.4" y="187.5" text-anchor="middle" class="t-strong">46%</text>
+<text x="401" y="187.5" text-anchor="middle" class="t-strong">58%</text>
+<text x="444.6" y="187.5" text-anchor="middle" class="t-strong">63%</text>
+<text x="488.1" y="187.5" text-anchor="middle" class="t-strong">73%</text>
+<text x="531.7" y="187.5" text-anchor="middle" class="t-strong">78%</text>
+<text x="575.3" y="187.5" text-anchor="middle" class="t-strong">82%</text>
+<text x="618.9" y="187.5" text-anchor="middle" class="t-strong">89%</text>
+<text x="662.4" y="187.5" text-anchor="middle" class="t-strong">94%</text>
+<line class="rule" x1="0" x2="727.8" y1="188" y2="188"/>
+</svg>
+    <table class="sr-only"><caption>Curva S, valores por data de corte</caption>
+<thead><tr><th scope="col">Data de corte</th><th scope="col">Planejado</th><th scope="col">Replanejado</th><th scope="col">Realizado</th></tr></thead>
+<tbody><tr><th scope="row">29/09</th><td>0%</td><td>—</td><td>0%</td></tr><tr><th scope="row">08/10</th><td>42%</td><td>—</td><td>34%</td></tr><tr><th scope="row">09/10</th><td>47%</td><td>—</td><td>34%</td></tr><tr><th scope="row">13/10</th><td>53%</td><td>—</td><td>34%</td></tr><tr><th scope="row">14/10</th><td>62%</td><td>—</td><td>34%</td></tr><tr><th scope="row">15/10</th><td>70%</td><td>—</td><td>34%</td></tr><tr><th scope="row">16/10</th><td>79%</td><td>—</td><td>46%</td></tr><tr><th scope="row">19/10</th><td>85%</td><td>—</td><td>58%</td></tr><tr><th scope="row">20/10</th><td>88%</td><td>—</td><td>63%</td></tr><tr><th scope="row">21/10</th><td>90%</td><td>73%</td><td>73%</td></tr><tr><th scope="row">22/10</th><td>92%</td><td>79%</td><td>78%</td></tr><tr><th scope="row">23/10</th><td>94%</td><td>86%</td><td>82%</td></tr><tr><th scope="row">26/10</th><td>96%</td><td>92%</td><td>89%</td></tr><tr><th scope="row">27/10</th><td>97%</td><td>96%</td><td>94%</td></tr><tr><th scope="row">28/10 (previsto)</th><td>—</td><td>100%</td><td>—</td></tr></tbody></table>
+  </section>
+
+  <div class="bottom reveal" style="--i:4">
+    <section aria-labelledby="s-ph">
+      <div class="section-header"><span class="section-header__index">04</span><h2 class="section-header__title" id="s-ph">Registros fotográficos</h2></div>
+      <div class="photos">
+        <figure class="photo"><svg viewBox="0 0 136 100" role="img" aria-label="Ilustração: compressor com tubulações desmontadas"><defs><pattern id="h1" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="ph-hatch"/></pattern></defs>
+  <rect width="136" height="100" class="ph-bg"/><rect width="136" height="100" fill="url(#h1)"/>
+  <rect x="0" y="82" width="136" height="18" class="ph-floor"/>
+  <rect x="10" y="72" width="116" height="8" class="ph-b"/>
+  <rect x="14" y="44" width="38" height="28" class="ph-a"/>
+  <path d="M18 48v20M24 48v20M30 48v20M36 48v20M42 48v20" class="ph-line"/>
+  <rect x="52" y="52" width="10" height="14" class="ph-b"/>
+  <rect x="62" y="36" width="56" height="36" rx="6" class="ph-a"/>
+  <path d="M104 36V14h26" class="ph-pipe"/>
+  <rect x="100" y="30" width="12" height="4" class="ph-b"/>
+  <rect x="118" y="10" width="4" height="12" class="ph-b"/>
+  <path d="M72 36V22" class="ph-pipe ph-pipe--thin"/>
+  <path d="M20 92h44" class="ph-pipe"/>
+  <rect x="64" y="86" width="4" height="12" class="ph-b"/>
+</svg><figcaption><strong>Foto 1 — Desmontagem dos periféricos</strong><br><span class="num">30/09 · 10:42</span></figcaption></figure>
+        <figure class="photo"><svg viewBox="0 0 136 100" role="img" aria-label="Ilustração: cilindros de fluido refrigerante alinhados"><defs><pattern id="h2" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="ph-hatch"/></pattern></defs>
+  <rect width="136" height="100" class="ph-bg"/><rect width="136" height="100" fill="url(#h2)"/>
+  <rect x="0" y="86" width="136" height="14" class="ph-floor"/>
+  <path d="M12 86V48a9 9 0 0 1 18 0V86Z" class="ph-a"/><rect x="18" y="36" width="6" height="6" class="ph-b"/><path d="M15 62h12" class="ph-line"/><path d="M36 86V42a9 9 0 0 1 18 0V86Z" class="ph-a"/><rect x="42" y="30" width="6" height="6" class="ph-b"/><path d="M39 56h12" class="ph-line"/><path d="M60 86V48a9 9 0 0 1 18 0V86Z" class="ph-a"/><rect x="66" y="36" width="6" height="6" class="ph-b"/><path d="M63 62h12" class="ph-line"/><path d="M84 86V42a9 9 0 0 1 18 0V86Z" class="ph-a"/><rect x="90" y="30" width="6" height="6" class="ph-b"/><path d="M87 56h12" class="ph-line"/><path d="M108 86V48a9 9 0 0 1 18 0V86Z" class="ph-a"/><rect x="114" y="36" width="6" height="6" class="ph-b"/><path d="M111 62h12" class="ph-line"/>
+  <path d="M6 30h124" class="ph-pipe ph-pipe--thin"/>
+</svg><figcaption><strong>Foto 2 — Cilindros para a carga de fluido</strong><br><span class="num">19/10 · 07:55</span></figcaption></figure>
+        <figure class="photo photo--wide"><svg viewBox="0 0 284 120" role="img" aria-label="Ilustração: curva de tubulação com isolamento térmico"><defs><pattern id="h3" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="ph-hatch"/></pattern></defs>
+  <rect width="284" height="120" class="ph-bg"/><rect width="284" height="120" fill="url(#h3)"/>
+  <path d="M-10 92H120a46 46 0 0 0 46-46V-10" class="ph-insul"/>
+  <path d="M40 74v36M70 74v36M100 74v36M146 66l22 22M152 40h32M152 14h32" class="ph-ring"/>
+  <rect x="196" y="20" width="14" height="72" class="ph-b"/>
+  <path d="M210 56H300" class="ph-insul ph-insul--thin"/>
+  <circle cx="246" cy="30" r="14" class="ph-gauge"/>
+  <path d="M246 30l7-7" class="ph-line"/>
+  <path d="M246 44v12" class="ph-pipe ph-pipe--thin"/>
+</svg><figcaption><strong>Foto 3 — Isolamento térmico da linha de sucção</strong> · <span class="num">18/10 · 15:20</span></figcaption></figure>
+      </div>
+    </section>
+    <div class="notes">
+      <section aria-labelledby="s-seg">
+        <div class="section-header"><span class="section-header__index">05</span><h2 class="section-header__title" id="s-seg">Segurança</h2></div>
+        <ul>
+          <li>Zero acidentes e zero incidentes no período (29 dias, 3.480 HH).</li>
+          <li>14 bloqueios LOTO auditados, nenhum desvio registrado.</li>
+        </ul>
+      </section>
+      <section aria-labelledby="s-dev">
+        <div class="section-header"><span class="section-header__index">06</span><h2 class="section-header__title" id="s-dev">Desvios</h2></div>
+        <ul>
+          <li>Fase 05: motor M-210B reprovado no teste de isolamento (18 MΩ; mínimo 100 MΩ). Secagem até 28/10 às 10:00.</li>
+          <li>Impacto de −3 p.p. e término previsto 17 h depois do plano.</li>
+        </ul>
+      </section>
+      <section aria-labelledby="s-pa">
+        <div class="section-header"><span class="section-header__index">07</span><h2 class="section-header__title" id="s-pa">Plano de ação</h2><span class="section-header__hint">das atas de 20/10 e 27/10 · 3 abertas</span></div>
+        <ul class="actions-opr">
+          <li>Reprogramar o teste de isolamento do M-210B com a equipe elétrica<span class="meta">Carla Menezes · prazo 28/10</span></li>
+          <li>Enviar o laudo de estanqueidade e vácuo assinado à engenharia<span class="meta">Diego Ramos · <span class="late">prazo 24/10 · vencida</span></span></li>
+          <li>Confirmar a janela de desbloqueio com a operação de Utilidades<span class="meta">Rafael Souza · prazo 28/10 às 08:00</span></li>
+        </ul>
+      </section>
+      <section aria-labelledby="s-li">
+        <div class="section-header"><span class="section-header__index">08</span><h2 class="section-header__title" id="s-li">Lições aprendidas</h2></div>
+        <ul>
+          <li>Medir o isolamento dos motores antes da parada, não no comissionamento.</li>
+          <li>Reservar os cilindros de fluido com 48 h de antecedência.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div class="foot__client"><svg viewBox="0 0 88 40" width="72" height="28" aria-hidden="true">
+  <rect x="0.5" y="0.5" width="87" height="39" rx="6" class="ph-logo-bg"/>
+  <path d="M14 28 22 12l8 16Z" class="ph-logo-mark"/><path d="M36 16h38M36 22h30M36 28h22" class="ph-logo-mark"/>
+</svg><span>Logo do cliente<br>Siderúrgica Exemplo S.A.</span></div>
+    <p class="foot__slogan">Segurança começa no planejamento</p>
+    <div class="foot__gen"><span><strong>Gerado pelo Projeta</strong><br><span class="num">OPR nº 08 · Folha 1/1 · dados de exemplo</span></span><svg viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="256" height="256" rx="56" fill="#F7F7F5"/>
+  <path d="M55 54H137C175.66 54 207 85.34 207 124C207 162.66 175.66 194 137 194H93V154H137C153.569 154 167 140.569 167 124C167 107.431 153.569 94 137 94H95V194H55V54Z" fill="#1A1A1A"/>
+  <path d="M55 194L113 136L142 165L113 194H55Z" fill="#FF6A00"/>
+  <path d="M55 194H205" stroke="#FF6A00" stroke-width="10" stroke-linecap="round"/>
+</svg></div>
+  </footer>
+</article>
+<p class="desk-note">Folha A4 retrato, 210 × 297 mm. Imprime em uma página. Dados de exemplo.</p>
+</main>
+</body>
+
+</html>
