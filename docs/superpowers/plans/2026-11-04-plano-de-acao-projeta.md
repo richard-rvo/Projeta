@@ -224,9 +224,10 @@ folha técnica bem desenhada:
    elementos dentro de linhas densas), `control` 9, `card` 12 e `sheet` 16. Os
    nove valores soltos são mapeados para o mais próximo.
 4. **Tipografia**: escala fixa existente (11 / 12 / 13 / 15 / 19 / 28).
-   Proposta a validar em mockup: **Archivo** (grotesca técnica com eixo de
-   largura) só em títulos e números de KPI, mantendo Inter/SF no corpo e na grade
-   do Gantt por legibilidade. Ambas servidas pelo próprio app.
+   **Confirmado pelo dono do produto em 04/11/2026**: **Archivo** (grotesca
+   técnica com eixo de largura) só em títulos e números de KPI, mantendo Inter
+   no corpo e na grade do Gantt por legibilidade. Ambas servidas pelo próprio
+   app. Mockups de referência em `docs/design/mockups/`.
 5. **Componentes únicos**, em `src/components/layout/` e `src/components/data/`:
    `PageHeader`, `KpiStrip`/`KpiTile`, `Panel`, `SectionHeader`, `EmptyState`,
    `DataTable`, `StatusPill`, `ProgressBar`, `Gauge`. As quatro versões de KPI e
@@ -399,9 +400,10 @@ aberta do nosso lado.
 3. **Testes de RLS em Node contra um projeto Supabase de staging**, e não com
    pgTAP local, porque esta máquina não tem Docker. Testar pela API também é
    exatamente o caminho de um atacante.
-4. **Sinal do desvio**: Realizado − Planejado. Negativo é atraso e aparece em
-   vermelho como "−3 p.p.". O modelo da imagem mostra "+3%" em vermelho, com a
-   convenção inversa. Se a empresa exigir aquela, vira configuração do workspace.
+4. **Sinal do desvio** (confirmado pelo dono do produto em 04/11/2026):
+   Realizado − Planejado. Negativo é atraso e aparece em vermelho como
+   "−3 p.p.". O modelo da imagem usa a convenção inversa ("+3%"), que não será
+   adotada.
 5. **SheetJS 0.20.3 pela CDN oficial** em vez de trocar de biblioteca: corrige
    as vulnerabilidades sem reescrever a exportação.
 6. **Raios mantêm o visual atual** (9/12/16 + 6 para miúdos), e o `DESIGN.md` é
