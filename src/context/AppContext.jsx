@@ -5,7 +5,7 @@ import {
   deleteProject as dbDeleteProject, saveTask as dbSaveTask,
   deleteTask as dbDeleteTask, saveAnomaly as dbSaveAnomaly,
   deleteAnomaly as dbDeleteAnomaly, updateWorkspace as dbUpdateWorkspace,
-  verifyWorkspaceData,
+  verifyWorkspaceData, friendlyDbError,
 } from '../utils/supabaseRepository';
 
 const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
@@ -20,6 +20,7 @@ const initialState = {
     user: null,
     workspace: null,
     error: null,
+    recovery: false,
   },
   activeProjectId: null,
   activeProjectTab: 'overview',   // 'overview' | 'gantt' | 'kanban' | 'scurve' | 'anomalies'
@@ -57,6 +58,7 @@ export const ACTIONS = {
   REMOVE_TASK: 'REMOVE_TASK',
   SET_ANOMALIES: 'SET_ANOMALIES',
   AUTH_READY: 'AUTH_READY',
+  AUTH_SET_RECOVERY: 'AUTH_SET_RECOVERY',
   AUTH_ERROR: 'AUTH_ERROR',
   AUTH_SIGNED_OUT: 'AUTH_SIGNED_OUT',
   AUTH_WORKSPACE_UPDATED: 'AUTH_WORKSPACE_UPDATED',
@@ -135,21 +137,23 @@ function reducer(state, action) {
     case ACTIONS.AUTH_READY:
       return {
         ...state,
-        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null },
+        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null, recovery: state.auth.recovery },
         projects: action.payload.data.projects,
         tasks: action.payload.data.tasks,
         anomalies: action.payload.data.anomalies,
       };
+    case ACTIONS.AUTH_SET_RECOVERY:
+      return { ...state, auth: { ...state.auth, recovery: Boolean(action.payload) } };
     case ACTIONS.AUTH_ERROR:
       return {
         ...state,
-        auth: { status: 'error', user: null, workspace: null, error: action.payload },
+        auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false },
         projects: [], tasks: [], anomalies: [],
       };
     case ACTIONS.AUTH_SIGNED_OUT:
       return {
         ...state,
-        auth: { status: 'ready', user: null, workspace: null, error: null },
+        auth: { status: 'ready', user: null, workspace: null, error: null, recovery: false },
         projects: [], tasks: [], anomalies: [], activeProjectId: null,
         activePage: 'pagePortfolio',
       };
@@ -293,7 +297,7 @@ function reducer(state, action) {
 export const AppContext = createContext();
 
 function saveErrorMessage(error) {
-  return error?.message || 'Não foi possível gravar no workspace Supabase.';
+  return friendlyDbError(error);
 }
 
 function orderById(list) {
@@ -348,7 +352,8 @@ export function AppProvider({ children }) {
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => loadUser(session?.user || null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') dispatch({ type: ACTIONS.AUTH_SET_RECOVERY, payload: true });
       window.setTimeout(() => loadUser(session?.user || null), 0);
     });
     return () => {
@@ -641,6 +646,18 @@ export function AppProvider({ children }) {
     });
   }, []);
 
+  const requestPasswordReset = useCallback((email) => {
+    if (!supabase) return Promise.reject(new Error('Supabase não está configurado.'));
+    return supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl });
+  }, []);
+
+  const updatePassword = useCallback(async (password) => {
+    if (!supabase) throw new Error('Supabase não está configurado.');
+    const result = await supabase.auth.updateUser({ password });
+    if (!result?.error) dispatch({ type: ACTIONS.AUTH_SET_RECOVERY, payload: false });
+    return result;
+  }, []);
+
   const signOut = useCallback(() => supabase?.auth.signOut(), []);
 
   const value = {
@@ -678,6 +695,8 @@ export function AppProvider({ children }) {
     reportLocalSaveError,
     signIn,
     signUp,
+    requestPasswordReset,
+    updatePassword,
     signOut,
     updateWorkspace,
   };

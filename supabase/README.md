@@ -42,3 +42,13 @@ As imagens das anomalias ficam no campo `anomalies.photos` como JSONB, depois
 de comprimidas no navegador. Se uma instalação antiga não possuir essa coluna,
 execute a migração `20260825010000_ensure_anomaly_photos_column.sql` no SQL
 Editor ou aplique as migrações pendentes.
+
+## Configuração de autenticação (painel do Supabase)
+
+Aplicar em produção e em staging:
+
+- Auth → Email: "Confirm email" ligado.
+- Password: mínimo de 10 caracteres, com letras e dígitos.
+- "Leaked password protection" ligado (requer plano Pro; senão, fica anotado para a Fase 6).
+- Site URL e Redirect URLs só com `https://projeta.richardvieira.com.br` e o domínio de preview da Vercel.
+- Rate limits de e-mail revisados.

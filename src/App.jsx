@@ -23,7 +23,7 @@ export function PageScroll({ children }) {
 }
 
 function App() {
-  const { state, signIn, signUp } = useContext(AppContext);
+  const { state, signIn, signUp, requestPasswordReset, updatePassword } = useContext(AppContext);
   const [authMode, setAuthMode] = useState('landing');
   useGlobalShortcuts();
 
@@ -31,10 +31,14 @@ function App() {
     return <div className="grid min-h-screen place-items-center bg-surface-0 text-sm text-text-2">Carregando workspace...</div>;
   }
 
+  if (state.auth.user && state.auth.recovery) {
+    return <AuthPage mode="reset" updatePassword={updatePassword} />;
+  }
+
   if (!state.auth.user) {
     return authMode === 'landing'
       ? <PublicLanding onStart={() => setAuthMode('login')} />
-      : <AuthPage mode={authMode} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} signUp={signUp} />;
+      : <AuthPage mode={authMode} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} signUp={signUp} requestPasswordReset={requestPasswordReset} />;
   }
 
   const renderPage = () => {

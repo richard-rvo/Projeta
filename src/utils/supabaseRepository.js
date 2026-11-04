@@ -8,13 +8,22 @@ function requireClient() {
   return supabase;
 }
 
+export function friendlyDbError(error) {
+  const text = `${error?.code || ''} ${error?.message || ''}`;
+  if (text.includes('plan_limit_projects')) return 'Você atingiu o limite de projetos do seu plano.';
+  if (error?.code === '42501') return 'Você não tem permissão para esta ação.';
+  if (error?.code === '23514') return 'Algum campo está fora do formato ou do tamanho permitido.';
+  return error?.message || 'Não foi possível gravar no workspace Supabase.';
+}
+
 function throwIfError(result) {
   if (result.error) throw result.error;
   return result.data;
 }
 
-function projectFromRow(row) {
+export function projectFromRow(row) {
   return {
+    ...(row.metadata || {}),
     id: row.id,
     name: row.name,
     description: row.description || '',
@@ -24,7 +33,6 @@ function projectFromRow(row) {
     calendars: Array.isArray(row.calendars) && row.calendars.length ? row.calendars : [{ ...DEFAULT_CALENDAR }],
     defaultCalendarId: row.default_calendar_id || DEFAULT_CALENDAR_ID,
     calendarSettings: row.calendar_settings || { durationDisplay: 'auto' },
-    ...(row.metadata || {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -50,8 +58,9 @@ function projectToRow(project, workspaceId) {
   };
 }
 
-function taskFromRow(row) {
+export function taskFromRow(row) {
   return {
+    ...(row.metadata || {}),
     id: row.id,
     projectId: row.project_id,
     name: row.name || '',
@@ -68,7 +77,6 @@ function taskFromRow(row) {
     indentLevel: row.indent_level || 0,
     order: row.order_index || 0,
     resources: row.resources || [],
-    ...(row.metadata || {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -100,8 +108,9 @@ function taskToRow(task, workspaceId) {
   };
 }
 
-function anomalyFromRow(row) {
+export function anomalyFromRow(row) {
   return {
+    ...(row.metadata || {}),
     id: row.id,
     projectId: row.project_id,
     taskId: row.task_id || '',
@@ -112,7 +121,6 @@ function anomalyFromRow(row) {
     photos: row.photos || [],
     occurredAt: row.occurred_at || '',
     resolvedAt: row.resolved_at || '',
-    ...(row.metadata || {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

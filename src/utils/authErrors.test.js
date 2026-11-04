@@ -1,0 +1,37 @@
+import { describe, it, expect } from 'vitest';
+import { authErrorMessage, isTransientAuthError } from './authErrors';
+
+describe('authErrorMessage', () => {
+  it('traduz same_password', () => {
+    expect(authErrorMessage({ code: 'same_password', message: 'New password should be different' })).toBe('A nova senha precisa ser diferente da atual.');
+  });
+  it('traduz weak_password', () => {
+    expect(authErrorMessage({ code: 'weak_password' })).toBe('Senha fraca: use pelo menos 10 caracteres, com letras e números.');
+  });
+  it('traduz limite de taxa (429 e código)', () => {
+    const msg = 'Muitas tentativas. Aguarde alguns minutos e tente de novo.';
+    expect(authErrorMessage({ status: 429 })).toBe(msg);
+    expect(authErrorMessage({ code: 'over_email_send_rate_limit' })).toBe(msg);
+  });
+  it('traduz erro de rede', () => {
+    const msg = 'Sem conexão. Verifique a internet e tente de novo.';
+    expect(authErrorMessage({ status: 0 })).toBe(msg);
+    expect(authErrorMessage({ name: 'AuthRetryableFetchError', status: 0 })).toBe(msg);
+  });
+  it('usa mensagem genérica no restante', () => {
+    expect(authErrorMessage({ message: 'Something English' })).toBe('Não foi possível concluir. Tente de novo.');
+    expect(authErrorMessage(null)).toBe('Não foi possível concluir. Tente de novo.');
+  });
+});
+
+describe('isTransientAuthError', () => {
+  it('é verdadeiro para rede, 429 e 5xx', () => {
+    expect(isTransientAuthError({ status: 0 })).toBe(true);
+    expect(isTransientAuthError({ status: 429 })).toBe(true);
+    expect(isTransientAuthError({ status: 503 })).toBe(true);
+  });
+  it('é falso para e-mail desconhecido e sem erro', () => {
+    expect(isTransientAuthError({ status: 400, code: 'user_not_found' })).toBe(false);
+    expect(isTransientAuthError(null)).toBe(false);
+  });
+});
