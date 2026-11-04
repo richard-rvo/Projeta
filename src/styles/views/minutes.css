@@ -1,0 +1,438 @@
+/* ═══════════════════════════════════════════════════════════════
+   ATAS — editor de blocos
+   ═══════════════════════════════════════════════════════════════
+
+   O conteúdo do editor é HTML gerado pelo ProseMirror: não dá para
+   pendurar utilitário em cada <p>. Por isso o miolo do documento
+   (tipografia, listas, Ação e Decisão) é CSS semântico aqui.
+
+   Uma coluna de leitura, corpo em --text-read com 1.6 de entrelinha.
+   A cor só aparece onde é informação: o prazo vencido da ação.
+
+   Camada `components`: utilitário Tailwind continua vencendo.
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* ── Coluna ─────────────────────────────────────────────────── */
+
+  .minute-editor {
+    --minute-column: 760px;
+    --minute-gap: 6px;
+
+    container-type: inline-size;
+    width: 100%;
+    max-width: var(--minute-column);
+    margin-inline: auto;
+  }
+
+  .minute-doc {
+    min-height: 12rem;
+    padding: var(--density-pad-sm) var(--density-pad) calc(var(--density-pad) * 4);
+    font-size: var(--text-read);
+    line-height: 1.6;
+    color: var(--text-1);
+    caret-color: var(--text-1);
+    overflow-wrap: break-word;
+    outline: none;
+  }
+
+  .minute-doc > * + * {
+    margin-top: 0.375em;
+  }
+
+  .minute-doc > :first-child {
+    margin-top: 0;
+  }
+
+  /* ── Texto ──────────────────────────────────────────────────── */
+
+  .minute-doc h1,
+  .minute-doc h2,
+  .minute-doc h3 {
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+
+  .minute-doc h1 {
+    margin-top: 1.25em;
+    font-size: var(--text-title);
+    line-height: 1.3;
+  }
+
+  .minute-doc h2,
+  .minute-doc h3 {
+    margin-top: 1.1em;
+    font-size: var(--text-read);
+    line-height: 1.45;
+  }
+
+  .minute-doc h3 {
+    color: var(--text-2);
+  }
+
+  .minute-doc strong {
+    font-weight: 600;
+  }
+
+  .minute-doc a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 2px;
+  }
+
+  .minute-doc code {
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+    background: var(--surface-3);
+    font-family: var(--font-numeric);
+    font-size: 0.9em;
+  }
+
+  .minute-doc pre {
+    padding: var(--density-pad-sm) 12px;
+    border-radius: var(--radius-control);
+    background: var(--surface-3);
+    font-size: var(--text-body);
+    overflow-x: auto;
+  }
+
+  .minute-doc pre code {
+    padding: 0;
+    background: none;
+  }
+
+  .minute-doc blockquote {
+    padding-left: 12px;
+    border-left: 2px solid var(--line-strong);
+    color: var(--text-2);
+  }
+
+  .minute-doc hr {
+    margin-block: 1em;
+    border: 0;
+    border-top: 1px solid var(--line-hairline);
+  }
+
+  .minute-doc hr.ProseMirror-selectednode {
+    border-top-color: var(--text-2);
+  }
+
+  /* Placeholder: só no bloco do cursor (Placeholder, showOnlyCurrent). */
+  .minute-doc :is(p, h1, h2, h3).is-empty::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: var(--text-3);
+    pointer-events: none;
+  }
+
+  /* ── Listas ─────────────────────────────────────────────────── */
+
+  .minute-doc ul,
+  .minute-doc ol {
+    padding-left: 1.5em;
+  }
+
+  .minute-doc ul {
+    list-style: disc;
+  }
+
+  .minute-doc ul ul {
+    list-style: circle;
+  }
+
+  .minute-doc ol {
+    list-style: decimal;
+  }
+
+  .minute-doc li::marker {
+    color: var(--text-2);
+  }
+
+  .minute-doc li + li {
+    margin-top: 0.125em;
+  }
+
+  .minute-doc ul[data-type='taskList'] {
+    padding-left: 0;
+    list-style: none;
+  }
+
+  /* A NodeView do TaskItem não marca o <li>; a lista marca. */
+  .minute-doc ul[data-type='taskList'] > li {
+    display: flex;
+    gap: 0.5em;
+  }
+
+  .minute-doc ul[data-type='taskList'] > li > label {
+    display: flex;
+    flex: none;
+    align-items: center;
+    height: 1.6em;
+    user-select: none;
+  }
+
+  .minute-doc ul[data-type='taskList'] > li > label input {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--text-1);
+    cursor: pointer;
+  }
+
+  .minute-doc ul[data-type='taskList'] > li > div {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .minute-doc ul[data-type='taskList'] > li[data-checked='true'] > div {
+    color: var(--text-3);
+    text-decoration: line-through;
+  }
+
+  /* ── Ação ───────────────────────────────────────────────────── */
+
+  .minute-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 2px var(--minute-gap);
+    margin-inline: -4px;
+    padding: 0 4px;
+    border-radius: var(--radius-control);
+    transition: background-color var(--dur-1) var(--ease-standard);
+  }
+
+  .minute-doc[contenteditable='true'] .minute-action:hover {
+    background: var(--surface-2);
+  }
+
+  .minute-action__lead {
+    display: flex;
+    flex: none;
+    margin-left: -5px;
+  }
+
+  /* Alvo de 26px; o círculo visível tem 16px. */
+  .minute-action__status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-h-sm);
+    height: var(--control-h-sm);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+  }
+
+  button.minute-action__status {
+    cursor: pointer;
+  }
+
+  .minute-action__dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    color: var(--text-on-accent);
+    transition:
+      background-color var(--dur-1) var(--ease-standard),
+      border-color var(--dur-1) var(--ease-standard);
+  }
+
+  .minute-action__dot svg {
+    width: 10px;
+    height: 10px;
+    stroke-width: 3;
+  }
+
+  button.minute-action__status:hover .minute-action__dot {
+    border-color: var(--text-2);
+  }
+
+  .minute-action__status[data-status='concluída'] .minute-action__dot {
+    border-color: var(--sched-done);
+    background: var(--sched-done);
+  }
+
+  .minute-action__status[data-status='cancelada'] .minute-action__dot {
+    border-color: var(--text-3);
+    color: var(--text-3);
+  }
+
+  /* Texto com a mesma altura de linha dos controles (26px). */
+  .minute-action__body {
+    position: relative;
+    flex: 1 1 14rem;
+    min-width: 0;
+    padding-block: 1px;
+  }
+
+  .minute-action__placeholder {
+    position: absolute;
+    top: 1px;
+    left: 0;
+    color: var(--text-3);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .minute-action[data-status='concluída'] .minute-action__text {
+    color: var(--text-3);
+    text-decoration: line-through;
+  }
+
+  .minute-action[data-status='cancelada'] :is(.minute-action__body, .minute-action__meta) {
+    opacity: 0.5;
+  }
+
+  .minute-action__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--minute-gap);
+    margin-left: auto;
+    /* Inputs e botões herdam a fonte (base.css: font: inherit). */
+    font-size: var(--text-small);
+  }
+
+  .minute-chip {
+    display: inline-flex;
+    align-items: center;
+    height: var(--control-h-sm);
+    padding: 0 8px;
+    border: 1px solid var(--line-hairline);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text-2);
+    font-size: var(--text-small);
+    font-variant-numeric: tabular-nums;
+    transition: border-color var(--dur-1) var(--ease-standard);
+  }
+
+  input.minute-chip {
+    width: 8.5rem;
+  }
+
+  input.minute-chip[type='date'] {
+    width: auto;
+  }
+
+  input.minute-chip:hover {
+    border-color: var(--line-strong);
+  }
+
+  .minute-chip[data-late='true'] {
+    border-color: transparent;
+    background: var(--sched-late-soft);
+    color: var(--sched-late);
+  }
+
+  [data-theme='dark'] .minute-chip {
+    color-scheme: dark;
+  }
+
+  /* Coluna estreita (celular, painel lateral aberto): os chips descem
+     para a linha de baixo, alinhados com o texto da ação. */
+  @container (max-width: 34rem) {
+    .minute-action__meta {
+      flex-basis: 100%;
+      margin-left: 0;
+      padding-left: calc(var(--control-h-sm) - 5px + var(--minute-gap));
+    }
+
+    .minute-action__create,
+    .minute-action__link {
+      min-width: 0;
+    }
+  }
+
+  /* Largura fixa: os chips ficam alinhados com "Criar" ou "Ver tarefa". */
+  .minute-action__create,
+  .minute-action__link {
+    min-width: 6.25rem;
+    height: var(--control-h-sm);
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--text-2);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-1) var(--ease-standard),
+      color var(--dur-1) var(--ease-standard);
+  }
+
+  .minute-action__create:hover {
+    background: var(--surface-3);
+    color: var(--text-1);
+  }
+
+  .minute-action__link {
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 2px;
+  }
+
+  .minute-action__link:hover {
+    color: var(--text-1);
+  }
+
+  /* ── Decisão ────────────────────────────────────────────────── */
+
+  .minute-decision {
+    position: relative;
+    padding: 2px 0 2px 12px;
+    border-left: 2px solid var(--text-1);
+  }
+
+  .minute-decision__label {
+    color: var(--text-2);
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    user-select: none;
+  }
+
+  /* O atributo do Placeholder fica no bloco; o texto vai na linha do corpo. */
+  .minute-decision.is-empty::after {
+    content: attr(data-placeholder);
+    position: absolute;
+    bottom: 2px;
+    left: 12px;
+    color: var(--text-3);
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .minute-action,
+    .minute-action__dot,
+    .minute-chip,
+    .minute-action__create,
+    .minute-action__link {
+      transition: none;
+    }
+  }
+}
+
+/* ── Foco ───────────────────────────────────────────────────────
+   O anel global de base.css está fora de camada, e estilo fora de
+   camada vence qualquer camada. Estes ajustes também ficam fora.
+
+   · o editor inteiro é um campo: o anel em volta da página só poluiria;
+     o cursor já mostra onde está o foco;
+   · chips e o botão de status são pílulas: o anel acompanha o raio. */
+.minute-doc:focus-visible {
+  box-shadow: none;
+}
+
+.minute-chip:focus-visible,
+.minute-action__status:focus-visible {
+  border-radius: var(--radius-pill);
+}
