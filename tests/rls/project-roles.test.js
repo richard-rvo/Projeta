@@ -267,7 +267,7 @@ describe('papel por projeto (project_members)', () => {
       description: 'Parada de manutenção',
       startDate: '2026-11-04',
       endDate: '2026-12-18',
-      status: 'Em andamento',
+      status: 'Em Andamento',
     };
     const savedProject = await A.client.from('projects').upsert(projectToRow(project, wsA.id)).select('*').single();
     expect(savedProject.error).toBeNull();
