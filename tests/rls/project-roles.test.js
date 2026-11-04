@@ -28,6 +28,7 @@ describe('papel por projeto (project_members)', () => {
   let B; // viewer em P
   let C; // editor em P
   let D; // sem vínculo
+  let E; // membro do workspace de A, sem papel em projeto algum
   let wsA;
   let P;
   let Q;
@@ -41,6 +42,7 @@ describe('papel por projeto (project_members)', () => {
     B = await createTestUser('pr-b');
     C = await createTestUser('pr-c');
     D = await createTestUser('pr-d');
+    E = await createTestUser('pr-e');
     wsA = await bootstrapWorkspace(A);
     await bootstrapWorkspace(D);
 
@@ -55,6 +57,10 @@ describe('papel por projeto (project_members)', () => {
       { project_id: P.id, user_id: C.id, role: 'editor' },
     ]);
     if (error) throw new Error(`seed project_members: ${error.code ?? ''} ${error.message}`);
+
+    // E entra no workspace de A, mas NÃO recebe linha em project_members.
+    const ws = await admin.from('workspace_members').insert({ workspace_id: wsA.id, user_id: E.id, role: 'member' });
+    if (ws.error) throw new Error(`seed workspace_members: ${ws.error.code ?? ''} ${ws.error.message}`);
   });
 
   afterAll(cleanupTestUsers);
@@ -128,6 +134,52 @@ describe('papel por projeto (project_members)', () => {
       expect(error).toBeNull();
       expect(data).toEqual([]);
     }
+  });
+
+  // S3: ser membro do workspace não dá acesso ao projeto; só o papel em project_members dá.
+  // Com as policies antigas (is_workspace_member) E via e gravava tudo de P.
+  it('membro do workspace sem papel no projeto não vê nada', async () => {
+    // Controle positivo: E é membro de wsA de fato, para o admin e para a própria RLS.
+    const membership = await admin
+      .from('workspace_members')
+      .select('role')
+      .eq('workspace_id', wsA.id)
+      .eq('user_id', E.id)
+      .single();
+    expect(membership.error).toBeNull();
+    expect(membership.data.role).toBe('member');
+    const seesWorkspace = await E.client.from('workspaces').select('id').eq('id', wsA.id);
+    expect(seesWorkspace.error).toBeNull();
+    expect(seesWorkspace.data).toHaveLength(1);
+
+    const noRole = await admin.from('project_members').select('user_id').eq('user_id', E.id);
+    expect(noRole.error).toBeNull();
+    expect(noRole.data).toEqual([]);
+
+    const filters = { projects: ['id', P.id], tasks: ['project_id', P.id], anomalies: ['project_id', P.id] };
+    for (const [table, [col, value]] of Object.entries(filters)) {
+      const control = await admin.from(table).select('id', { count: 'exact', head: true }).eq(col, value);
+      expect(control.error).toBeNull();
+      expect(control.count).toBeGreaterThanOrEqual(1);
+
+      const { data, error } = await E.client.from(table).select('*').eq(col, value);
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+    }
+
+    const ins = await E.client
+      .from('tasks')
+      .insert({ workspace_id: P.workspace_id, project_id: P.id, name: 'do membro sem papel' });
+    expect(ins.error?.code).toBe('42501');
+
+    const before = await admin.from('projects').select('name, updated_at').eq('id', P.id).single();
+    expect(before.error).toBeNull();
+    const upd = await E.client.from('projects').update({ name: 'pelo membro sem papel' }).eq('id', P.id).select();
+    expect(upd.error).toBeNull();
+    expect(upd.data).toEqual([]);
+    const after = await admin.from('projects').select('name, updated_at').eq('id', P.id).single();
+    expect(after.error).toBeNull();
+    expect(after.data).toEqual(before.data);
   });
 
   it('membros veem o próprio vínculo e o dono vê todos', async () => {
