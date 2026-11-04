@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const RUN_ID = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -53,15 +52,8 @@ export async function createTestUser(label) {
 }
 
 export async function bootstrapWorkspace(user) {
-  // INSERT ... RETURNING fails the SELECT policy (the owner membership is added by an
-  // AFTER INSERT trigger, invisible to the same statement), so insert with a client-side
-  // id and read the row back afterwards. Task 2 replaces this with the RPC.
-  const id = randomUUID();
-  must(
-    await user.client.from('workspaces').insert({ id, name: `RLS ${RUN_ID}`, owner_id: user.id }),
-    'bootstrapWorkspace',
-  );
-  const row = must(await user.client.from('workspaces').select('*').eq('id', id).single(), 'readWorkspace');
+  // Same path as the app: the personal workspace comes from the SECURITY DEFINER RPC.
+  const row = must(await user.client.rpc('ensure_personal_workspace').single(), 'bootstrapWorkspace');
   created.workspaces.push(row.id);
   return row;
 }
