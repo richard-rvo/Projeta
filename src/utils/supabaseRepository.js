@@ -3,7 +3,7 @@ import { DEFAULT_CALENDAR, DEFAULT_CALENDAR_ID, calendarsOf } from './calendar';
 import { readDependencies } from './dependencies';
 import { generateId } from './ids';
 
-function requireClient() {
+export function requireClient() {
   if (!supabase) throw new Error('Supabase não está configurado. Confira SUPABASE_URL e SUPABASE_ANON_KEY.');
   return supabase;
 }
@@ -16,7 +16,7 @@ export function friendlyDbError(error) {
   return error?.message || 'Não foi possível gravar no workspace Supabase.';
 }
 
-function throwIfError(result) {
+export function throwIfError(result) {
   if (result.error) throw result.error;
   return result.data;
 }
