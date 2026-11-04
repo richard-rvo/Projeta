@@ -25,6 +25,16 @@
     margin-inline: auto;
   }
 
+  /* Conteúdo que o esquema não conhece: o editor some e fica o aviso. */
+  .minute-editor__alert {
+    margin: var(--density-pad-sm) var(--density-pad);
+    padding: var(--density-pad-sm) 12px;
+    border-radius: var(--radius-control);
+    background: var(--sched-late-soft);
+    color: var(--text-1);
+    font-size: var(--text-body);
+  }
+
   .minute-doc {
     min-height: 12rem;
     padding: var(--density-pad-sm) var(--density-pad) calc(var(--density-pad) * 4);

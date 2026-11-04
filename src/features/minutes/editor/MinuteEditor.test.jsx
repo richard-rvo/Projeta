@@ -160,6 +160,34 @@ describe('MinuteEditor', () => {
     expect(document.querySelector('[cmdk-item]')).toBeNull()
   })
 
+  // Um bloco desconhecido (aba velha depois de um deploy, por exemplo) faria o
+  // TipTap carregar um doc vazio, e o autosave gravaria esse vazio por cima.
+  it('conteúdo inválido trava a edição, avisa e nunca emite onChange', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const onChange = vi.fn()
+    const onContentError = vi.fn()
+    const { editor } = await render({
+      content: doc(para('Pauta'), { type: 'naoExiste' }),
+      onChange,
+      onContentError,
+    })
+    // O useEditor reaplica `editable` das opções 1 ms depois de montar: espera
+    // passar disso para provar que a trava não é desfeita.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
+    await run(() => editor.commands.insertContent('apagando tudo'))
+
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onContentError).toHaveBeenCalledTimes(1)
+    expect(onContentError.mock.calls[0][0]).toBeInstanceOf(Error)
+    expect(editor.isEditable).toBe(false)
+    expect(container.querySelector('[role="alert"]').textContent).toBe(
+      'Esta ata contém um bloco que esta versão do Projeta não reconhece. Recarregue a página para editar.',
+    )
+    // O aviso do TipTap ao cair no doc vazio de reserva: esperado, silenciado aqui.
+    expect(warn.mock.calls.map((args) => args[0])).toEqual(['[tiptap warn]: Invalid content.'])
+    warn.mockRestore()
+  })
+
   it('em modo leitura não há controles de edição', async () => {
     await render({
       content: doc(action('a1', 'Comprar', { ownerName: 'Ana', dueDate: '2026-11-20' })),

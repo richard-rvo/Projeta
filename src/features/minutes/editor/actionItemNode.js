@@ -28,14 +28,37 @@ function mapFragment(fragment, fn) {
   return Fragment.fromArray(nodes)
 }
 
-/** Dá id novo a toda ação do trecho colado (Review Focus 1). */
-export function regenerateActionIds(slice, makeId = generateId) {
-  const content = mapFragment(slice.content, (node) =>
-    node.type.name === 'actionItem'
-      ? node.type.create({ ...node.attrs, id: makeId() }, node.content, node.marks)
-      : node,
-  )
+const NO_TASKS = new Set()
+
+function taskIdsIn(doc) {
+  const taskIds = new Set()
+  doc.descendants((node) => {
+    if (node.type.name === 'actionItem' && node.attrs.taskId) taskIds.add(node.attrs.taskId)
+    return !node.isTextblock
+  })
+  return taskIds
+}
+
+/**
+ * Toda ação do trecho colado ganha id novo (Review Focus 1) e perde o vínculo
+ * com a tarefa, salvo se o `taskId` está em `keepTaskIds`.
+ */
+export function regenerateActionIds(slice, makeId = generateId, keepTaskIds = NO_TASKS) {
+  const content = mapFragment(slice.content, (node) => {
+    if (node.type.name !== 'actionItem') return node
+    const taskId = keepTaskIds.has(node.attrs.taskId) ? node.attrs.taskId : null
+    return node.type.create({ ...node.attrs, id: makeId(), taskId }, node.content, node.marks)
+  })
   return new Slice(content, slice.openStart, slice.openEnd)
+}
+
+// Colar é sempre uma ação nova, sem tarefa: ela pode ser de outro projeto, e a
+// FK (task_id, project_id) recusaria a gravação inteira da ata; na mesma ata,
+// seriam duas ações numa tarefa. Só arrastar para mover dentro da ata mantém o
+// vínculo, porque a original sai no mesmo passo.
+function transformPasted(slice, view) {
+  const keep = view.dragging?.move ? taskIdsIn(view.state.doc) : NO_TASKS
+  return regenerateActionIds(slice, generateId, keep)
 }
 
 // Ação sem id (vinda de modelo) ou com id repetido (dividir uma ação copia os
@@ -127,7 +150,7 @@ export const ActionItemNode = Node.create({
     return [
       new Plugin({
         key: new PluginKey('actionItemIds'),
-        props: { transformPasted: (slice) => regenerateActionIds(slice) },
+        props: { transformPasted },
         appendTransaction: fillMissingIds,
       }),
     ]

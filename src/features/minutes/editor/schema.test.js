@@ -144,6 +144,44 @@ describe('colar ação gera id novo (Review Focus 1)', () => {
     expect(new Set(list).size).toBe(4)
   })
 
+  // A tarefa pode ser de outro projeto: a FK (task_id, project_id) recusaria
+  // a gravação inteira da ata. Na mesma ata, seriam duas ações numa tarefa.
+  it.each([
+    ['de outra ata (tarefa fora deste documento)', 't-outro'],
+    ['da mesma ata (cópia de ação já ligada)', 't1'],
+  ])('colar ação %s solta o vínculo com a tarefa', (_caso, taskId) => {
+    const editor = makeEditor(doc(para(''), action('a1', 'Original', { taskId: 't1' })))
+    editor.commands.setTextSelection(1)
+    editor.view.pasteHTML(
+      `<div data-type="action-item" data-id="a1" data-task-id="${taskId}">Colada</div>`,
+      pasteEvent(),
+    )
+    const actions = extractActions(editor.getJSON())
+    expect(actions.map((a) => [a.description, a.taskId])).toEqual([
+      ['Colada', null],
+      ['Original', 't1'],
+    ])
+  })
+
+  // Arrastar (mover) dentro da ata é a mesma ação mudando de lugar: a
+  // original sai no mesmo passo, então o vínculo continua.
+  it.each([
+    [true, 't1'],
+    [false, null],
+  ])('arrastar com move=%s mantém o vínculo só ao mover', (move, expected) => {
+    const editor = makeEditor(doc(para('Antes'), action('a1', 'Ligada', { taskId: 't1' })))
+    const from = endOf(editor, 'paragraph') + 1
+    const slice = editor.state.doc.slice(from, editor.state.doc.content.size)
+    editor.view.dragging = { slice, move }
+    let pasted = slice
+    editor.view.someProp('transformPasted', (f) => {
+      pasted = f(pasted, editor.view, false)
+    })
+    editor.view.dragging = null
+    expect(pasted.content.firstChild.attrs.taskId).toBe(expected)
+    expect(pasted.content.firstChild.attrs.id).not.toBe('a1')
+  })
+
   it('regenerateActionIds troca o id também de ação aninhada e mantém o resto', () => {
     const editor = makeEditor(doc(para('')))
     const { schema } = editor
