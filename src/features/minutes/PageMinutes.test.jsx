@@ -5,11 +5,16 @@ import { createRoot } from 'react-dom/client'
 import { AppContext } from '../../context/AppContext'
 import PageMinutes from './PageMinutes'
 import { useProjectMinutes } from './useProjectMinutes'
+import { buildNewTask } from '../../utils/taskFactory'
+import { extractActions } from './minuteDoc'
 
 vi.mock('./useProjectMinutes', () => ({ useProjectMinutes: vi.fn() }))
 vi.mock('./editor/MinuteEditor', () => ({
-  default: ({ onContentError }) => (
-    <button type="button" data-testid="editor" onClick={() => onContentError(new Error('x'))} />
+  default: ({ onContentError, onCreateTask }) => (
+    <>
+      <button type="button" data-testid="editor" onClick={() => onContentError(new Error('x'))} />
+      <button type="button" data-testid="editor-create" onClick={() => onCreateTask('a1')} />
+    </>
   ),
 }))
 
@@ -31,18 +36,22 @@ afterEach(async () => {
 })
 
 const base = () => ({
-  minutes: [], query: '', setQuery: vi.fn(), activeMinute: null, openMinute: vi.fn(),
+  minutes: [], query: '', setQuery: vi.fn(), activeMinute: null, openMinute: vi.fn().mockResolvedValue(undefined),
   createMinute: vi.fn().mockResolvedValue(null), updateActiveMinute: vi.fn(),
   removeMinute: vi.fn(), retrySave: vi.fn(), saveStatus: 'idle', loading: false, error: '',
 })
 
-async function render(overrides) {
+async function render(overrides, ctxOverrides = {}) {
   const hook = { ...base(), ...overrides }
   useProjectMinutes.mockReturnValue(hook)
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
-  const ctx = { state: { activeProjectId: 'p1' }, showToast: vi.fn(), openTaskInspector: vi.fn() }
+  const ctx = {
+    state: { activeProjectId: 'p1', projects: [], tasks: [] },
+    showToast: vi.fn(), openTaskInspector: vi.fn(), clearFocusMinute: vi.fn(), addTask: vi.fn(),
+    ...ctxOverrides,
+  }
   await run(() => root.render(<AppContext.Provider value={ctx}><PageMinutes /></AppContext.Provider>))
   hook.ctx = ctx
   return hook
@@ -115,5 +124,82 @@ describe('PageMinutes', () => {
     await run(() => document.querySelector('[data-testid="editor"]').click())
     expect(hook.ctx.showToast).toHaveBeenCalledWith(
       'Esta ata não pôde ser aberta para edição. Recarregue a página.', 'error')
+  })
+
+  describe('ações', () => {
+    const project = { id: 'p1', name: 'Obra', calendars: [] }
+    const actionNode = (id, text, attrs = {}) => ({
+      type: 'actionItem',
+      attrs: { id, ownerName: 'Ana', dueDate: '2026-11-10', status: 'aberta', taskId: null, ...attrs },
+      content: [{ type: 'text', text }],
+    })
+    const withActions = (...nodes) => ({
+      ...minute('a', 'Ata A', '2026-11-04T09:00'), participants: '',
+      content: { type: 'doc', content: nodes },
+    })
+    const ctxFor = (extra = {}) => ({
+      state: { activeProjectId: 'p1', projects: [project], tasks: [], ...extra },
+    })
+
+    it('Criar tarefa chama addTask com a fábrica e grava o taskId; clique duplo vale um', async () => {
+      let release
+      const addTask = vi.fn(() => new Promise((res) => { release = res }))
+      const m = withActions(actionNode('a1', 'Comprar flanges'))
+      const hook = await render({ minutes: [m], activeMinute: m }, { ...ctxFor(), addTask })
+      const click = () => document.querySelector('[data-testid="editor-create"]').click()
+      await run(() => { click(); click() })
+      expect(addTask).toHaveBeenCalledTimes(1)
+      const task = addTask.mock.calls[0][0]
+      expect(task).toMatchObject({
+        ...buildNewTask(project, { name: 'Comprar flanges', order: 0, startDay: '2026-11-10', workingDays: 1 }),
+        id: task.id,
+      })
+      await run(() => release())
+      const { content } = hook.updateActiveMinute.mock.calls.at(-1)[0]
+      expect(extractActions(content)[0].taskId).toBe(task.id)
+    })
+
+    it('falha ao criar tarefa mostra erro e não altera o documento', async () => {
+      const addTask = vi.fn().mockRejectedValue(new Error('boom'))
+      const m = withActions(actionNode('a1', 'X'))
+      const hook = await render({ minutes: [m], activeMinute: m }, { ...ctxFor(), addTask })
+      await run(() => document.querySelector('[data-testid="editor-create"]').click())
+      expect(hook.ctx.showToast).toHaveBeenCalledWith(expect.stringContaining('Não foi possível criar a tarefa'), 'error')
+      expect(hook.updateActiveMinute).not.toHaveBeenCalled()
+    })
+
+    it('limpa taskId pendurado ao abrir a ata', async () => {
+      const m = withActions(actionNode('a1', 'X', { taskId: 'gone' }), actionNode('a2', 'Y', { taskId: 't1' }))
+      const hook = await render({ minutes: [m], activeMinute: m }, ctxFor({ tasks: [{ id: 't1', projectId: 'p1' }] }))
+      expect(hook.updateActiveMinute).toHaveBeenCalledTimes(1)
+      const actions = extractActions(hook.updateActiveMinute.mock.calls[0][0].content)
+      expect(actions.map((a) => a.taskId)).toEqual([null, 't1'])
+    })
+
+    it('não grava nada quando os vínculos estão íntegros', async () => {
+      const m = withActions(actionNode('a1', 'X', { taskId: 't1' }))
+      const hook = await render({ minutes: [m], activeMinute: m }, ctxFor({ tasks: [{ id: 't1', projectId: 'p1' }] }))
+      expect(hook.updateActiveMinute).not.toHaveBeenCalled()
+    })
+
+    it('painel lista abertas por padrão, alterna para Todas e recolhe', async () => {
+      const m = withActions(actionNode('a1', 'Aberta um'), actionNode('a2', 'Feita dois', { status: 'concluída' }))
+      await render({ minutes: [m], activeMinute: m }, ctxFor())
+      const panel = () => document.querySelector('aside[aria-label="Ações da ata"]')
+      expect(panel().textContent).toContain('Aberta um')
+      expect(panel().textContent).not.toContain('Feita dois')
+      await run(() => byText('Todas').click())
+      expect(panel().textContent).toContain('Feita dois')
+      const toggle = document.querySelector('button[aria-expanded]')
+      expect(toggle.getAttribute('aria-expanded')).toBe('true')
+      await run(() => toggle.click())
+      expect(panel()).toBeNull()
+    })
+
+    it('consome focusMinuteId uma vez: abre a ata e limpa o foco', async () => {
+      const hook = await render({}, { ...ctxFor({ focusMinuteId: 'm9' }) })
+      expect(hook.openMinute).toHaveBeenCalledWith('m9')
+      expect(hook.ctx.clearFocusMinute).toHaveBeenCalledTimes(1)
+    })
   })
 })

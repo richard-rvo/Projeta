@@ -1,5 +1,5 @@
-import { useContext, useEffect, useState } from 'react'
-import { ArrowLeft, Search } from 'lucide-react'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, ListChecks, Search } from 'lucide-react'
 import { AppContext } from '../../context/AppContext'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import ViewBar, { ViewBarButton, ViewBarSpacer } from '../../components/shell/ViewBar'
@@ -9,6 +9,9 @@ import MinuteEditor from './editor/MinuteEditor'
 import MinuteHeader from './MinuteHeader'
 import MinuteList from './MinuteList'
 import NewMinuteMenu from './NewMinuteMenu'
+import { MinuteActionsDock, useWideScreen } from './MinuteActionsPanel'
+import { useMinuteActions } from './useMinuteActions'
+import { extractActions } from './minuteDoc'
 
 const SAVE_LABEL = { pending: 'Salvando…', saving: 'Salvando…', saved: 'Salvo' }
 
@@ -27,7 +30,7 @@ function SaveIndicator({ status, onRetry }) {
 }
 
 export default function PageMinutes() {
-  const { state, showToast, openTaskInspector } = useContext(AppContext)
+  const { state, showToast, openTaskInspector, clearFocusMinute } = useContext(AppContext)
   const {
     minutes, setQuery, activeMinute, openMinute, createMinute,
     updateActiveMinute, removeMinute, retrySave, saveStatus, loading, error,
@@ -36,6 +39,18 @@ export default function PageMinutes() {
   const [search, setSearch] = useState('')
   const [showList, setShowList] = useState(true)
   const [toDelete, setToDelete] = useState(null)
+  const wide = useWideScreen()
+  const [panelOpen, setPanelOpen] = useState(wide)
+  const { createTask, setActionStatus } = useMinuteActions(activeMinute, updateActiveMinute)
+  const actions = useMemo(() => (activeMinute ? extractActions(activeMinute.content) : []), [activeMinute])
+
+  // Vindo da Visão Geral: abre a ata pedida uma única vez (Fase 2 troca por URL).
+  const focusMinuteId = state.focusMinuteId
+  useEffect(() => {
+    if (!focusMinuteId) return
+    clearFocusMinute()
+    openMinute(focusMinuteId).then(() => setShowList(false))
+  }, [focusMinuteId, clearFocusMinute, openMinute])
 
   useEffect(() => {
     const id = setTimeout(() => setQuery(search), 300)
@@ -53,7 +68,6 @@ export default function PageMinutes() {
     removeMinute(toDelete.id)
     if (toDelete.id === activeMinute?.id) setShowList(true)
   }
-  const createTaskSoon = () => showToast('Converter ação em tarefa chega na próxima versão.', 'info')
 
   const noMinutes = !minutes.length && !search && !activeMinute
   // Sem ata aberta, a lista é o único painel útil no celular.
@@ -76,6 +90,17 @@ export default function PageMinutes() {
           />
         </div>
         <ViewBarSpacer />
+        {activeMinute && (
+          <ViewBarButton
+            icon={ListChecks}
+            active={panelOpen}
+            aria-expanded={panelOpen}
+            aria-label="Ações da ata"
+            onClick={() => setPanelOpen((v) => !v)}
+          >
+            Ações
+          </ViewBarButton>
+        )}
         <SaveIndicator status={saveStatus} onRetry={retrySave} />
         <NewMinuteMenu onCreate={create} />
       </ViewBar>
@@ -104,7 +129,7 @@ export default function PageMinutes() {
                   key={activeMinute.id}
                   content={activeMinute.content}
                   onChange={(content) => updateActiveMinute({ content })}
-                  onCreateTask={createTaskSoon}
+                  onCreateTask={createTask}
                   onContentError={contentError}
                   onOpenTask={openTaskInspector}
                 />
@@ -113,6 +138,17 @@ export default function PageMinutes() {
               <p className="p-6 text-small text-text-3">Selecione uma ata para ler ou editar.</p>
             )}
           </main>
+          {activeMinute && (
+            <MinuteActionsDock
+              open={panelOpen}
+              onOpenChange={setPanelOpen}
+              wide={wide}
+              actions={actions}
+              onCreateTask={createTask}
+              onViewTask={openTaskInspector}
+              onStatusChange={setActionStatus}
+            />
+          )}
         </div>
       )}
 

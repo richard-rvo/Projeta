@@ -73,3 +73,22 @@ export function dedupeActionIds(doc, makeId) {
 export function isActionOverdue(action, todayStr) {
   return action.status === 'aberta' && !!action.dueDate && action.dueDate < todayStr
 }
+
+// Tarefa apagada no Gantt deixa taskId pendurado no documento; o FK rejeitaria o save.
+// Imutável; devolve o mesmo doc quando não há nada a limpar.
+export function clearMissingTaskLinks(doc, existingTaskIds) {
+  let dangling = false
+  walk(doc, (node) => {
+    if (node.type === 'actionItem' && node.attrs?.taskId && !existingTaskIds.has(node.attrs.taskId)) {
+      dangling = true
+    }
+  })
+  if (!dangling) return doc
+  const next = clone(doc)
+  walk(next, (node) => {
+    if (node.type === 'actionItem' && node.attrs?.taskId && !existingTaskIds.has(node.attrs.taskId)) {
+      node.attrs = { ...node.attrs, taskId: null }
+    }
+  })
+  return next
+}
