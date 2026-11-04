@@ -3,7 +3,6 @@ import React, {
 } from 'react';
 import { AppContext } from '../../context/AppContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import * as XLSX from 'xlsx';
 import {
   AlertCircle, Plus,
 } from 'lucide-react';
@@ -1094,7 +1093,7 @@ export default function GanttView() {
     },
   });
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     const header = ['#', 'Tarefa', 'Duração', 'Início', 'Término', 'Modo', 'Calendário',
       '% Concluída', '% Planejada', 'Início Baseline', 'Término Baseline',
       'Recursos', 'Grupo', 'Predecessoras'];
@@ -1107,9 +1106,15 @@ export default function GanttView() {
       formatDateTimeShort(t.baselineStart), formatDateTimeShort(t.baselineEnd),
       t.resources || '', t.resourceGroup || '', predecessorLabel(t.dependsOn),
     ]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([header, ...rows]), 'Gantt');
-    XLSX.writeFile(wb, `${activeProject?.name || 'Projeto'}_Gantt.xlsx`);
+    try {
+      const XLSX = await import('xlsx');
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([header, ...rows]), 'Gantt');
+      XLSX.writeFile(wb, `${activeProject?.name || 'Projeto'}_Gantt.xlsx`);
+    } catch (err) {
+      console.error(err);
+      showToast('Não foi possível exportar para Excel.', 'error');
+    }
   };
 
   const exportToPdf = useCallback(() => {
