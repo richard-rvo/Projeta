@@ -38,7 +38,7 @@ export function projectFromRow(row) {
   };
 }
 
-function projectToRow(project, workspaceId) {
+export function projectToRow(project, workspaceId) {
   const calendars = calendarsOf(project);
   return {
     id: project.id || generateId(),
@@ -82,7 +82,7 @@ export function taskFromRow(row) {
   };
 }
 
-function taskToRow(task, workspaceId) {
+export function taskToRow(task, workspaceId) {
   return {
     id: task.id || generateId(),
     workspace_id: workspaceId,
@@ -126,7 +126,7 @@ export function anomalyFromRow(row) {
   };
 }
 
-function anomalyToRow(anomaly, workspaceId) {
+export function anomalyToRow(anomaly, workspaceId) {
   const {
     id, projectId, taskId, title, description, status, severity, photos,
     occurredAt, resolvedAt, ...metadata
