@@ -38,7 +38,7 @@ afterEach(async () => {
 const base = () => ({
   minutes: [], query: '', setQuery: vi.fn(), activeMinute: null, openMinute: vi.fn().mockResolvedValue(undefined),
   createMinute: vi.fn().mockResolvedValue(null), updateActiveMinute: vi.fn(),
-  removeMinute: vi.fn(), retrySave: vi.fn(), saveStatus: 'idle', loading: false, error: '',
+  removeMinute: vi.fn(), retrySave: vi.fn(), flushNow: vi.fn().mockResolvedValue(true), saveStatus: 'idle', loading: false, error: '',
 })
 
 async function render(overrides, ctxOverrides = {}) {
@@ -201,5 +201,30 @@ describe('PageMinutes', () => {
       expect(hook.openMinute).toHaveBeenCalledWith('m9')
       expect(hook.ctx.clearFocusMinute).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it('Imprimir / PDF fica desabilitado sem ata e, com ata, grava o pendente antes da pré-visualização', async () => {
+    await render()
+    expect(byText('Imprimir / PDF')?.disabled ?? true).toBe(true)
+    await run(() => root.unmount())
+    container.remove()
+    const hook = await render({
+      activeMinute: { id: 'm1', title: 'T', meetingAt: '2026-11-04T09:00', location: '', participants: '', content: { type: 'doc', content: [{ type: 'paragraph' }] } },
+      flushNow: vi.fn().mockResolvedValue(true),
+    })
+    await run(() => byText('Imprimir / PDF').click())
+    expect(hook.flushNow).toHaveBeenCalledTimes(1)
+    expect(document.body.textContent).toContain('Voltar à edição')
+    await run(() => byText('Voltar à edição').click())
+    expect(document.body.textContent).not.toContain('Voltar à edição')
+  })
+
+  it('não abre a pré-visualização se o save pendente falhou', async () => {
+    await render({
+      activeMinute: { id: 'm1', title: 'T', meetingAt: '2026-11-04T09:00', content: { type: 'doc', content: [{ type: 'paragraph' }] } },
+      flushNow: vi.fn().mockResolvedValue(false),
+    })
+    await run(() => byText('Imprimir / PDF').click())
+    expect(document.body.textContent).not.toContain('Voltar à edição')
   })
 })

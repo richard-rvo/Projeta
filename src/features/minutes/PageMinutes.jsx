@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ListChecks, Search } from 'lucide-react'
+import { ArrowLeft, ListChecks, Printer, Search } from 'lucide-react'
 import { AppContext } from '../../context/AppContext'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import ViewBar, { ViewBarButton, ViewBarSpacer } from '../../components/shell/ViewBar'
@@ -12,6 +12,7 @@ import NewMinuteMenu from './NewMinuteMenu'
 import { MinuteActionsDock, useWideScreen } from './MinuteActionsPanel'
 import { useMinuteActions } from './useMinuteActions'
 import { extractActions } from './minuteDoc'
+import { MinutePrintPreview } from './MinutePrintSheet'
 
 const SAVE_LABEL = { pending: 'Salvando…', saving: 'Salvando…', saved: 'Salvo' }
 
@@ -33,12 +34,13 @@ export default function PageMinutes() {
   const { state, showToast, openTaskInspector, clearFocusMinute } = useContext(AppContext)
   const {
     minutes, setQuery, activeMinute, openMinute, createMinute,
-    updateActiveMinute, removeMinute, retrySave, saveStatus, loading, error,
+    updateActiveMinute, removeMinute, retrySave, flushNow, saveStatus, loading, error,
   } = useProjectMinutes(state.activeProjectId)
 
   const [search, setSearch] = useState('')
   const [showList, setShowList] = useState(true)
   const [toDelete, setToDelete] = useState(null)
+  const [previewing, setPreviewing] = useState(false)
   const wide = useWideScreen()
   const [panelOpen, setPanelOpen] = useState(wide)
   const { createTask, setActionStatus } = useMinuteActions(activeMinute, updateActiveMinute)
@@ -69,11 +71,27 @@ export default function PageMinutes() {
     if (toDelete.id === activeMinute?.id) setShowList(true)
   }
 
+  // Grava o pendente antes de montar a folha; se o save falhou, fica na edição.
+  const startPreview = async () => {
+    if (await flushNow()) setPreviewing(true)
+  }
+  const projectName = state.projects?.find((p) => p.id === state.activeProjectId)?.name || ''
+
   const noMinutes = !minutes.length && !search && !activeMinute
   // Sem ata aberta, a lista é o único painel útil no celular.
   const listVisible = showList || !activeMinute
   const contentError = () =>
     showToast('Esta ata não pôde ser aberta para edição. Recarregue a página.', 'error')
+
+  if (previewing && activeMinute) {
+    return (
+      <MinutePrintPreview
+        minute={activeMinute}
+        projectName={projectName}
+        onBack={() => setPreviewing(false)}
+      />
+    )
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -101,6 +119,9 @@ export default function PageMinutes() {
             Ações
           </ViewBarButton>
         )}
+        <ViewBarButton icon={Printer} disabled={!activeMinute} onClick={startPreview}>
+          Imprimir / PDF
+        </ViewBarButton>
         <SaveIndicator status={saveStatus} onRetry={retrySave} />
         <NewMinuteMenu onCreate={create} />
       </ViewBar>

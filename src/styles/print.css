@@ -326,3 +326,47 @@
     background: var(--text-3);
   }
 }
+
+/* Ata de reunião: A4 retrato, sem controles de edição. */
+@media print {
+  .minute-print h1,
+  .minute-print h2,
+  .minute-print h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .minute-print li,
+  .minute-print p,
+  .minute-print [data-type='actionItem'],
+  .minute-print [data-type='decision'],
+  .minute-print thead,
+  .minute-print tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .minute-print thead {
+    display: table-header-group;
+  }
+
+  /* Controles do editor: chips editáveis, menus, botões e placeholders. */
+  .minute-print button,
+  .minute-print input,
+  .minute-print select,
+  .minute-print textarea,
+  .minute-print [role='menu'],
+  .minute-print [role='listbox'],
+  .minute-print [data-slash-menu] {
+    display: none !important;
+  }
+
+  .minute-print .is-empty::before,
+  .minute-print .is-editor-empty::before {
+    content: none !important;
+  }
+
+  .minute-print .ProseMirror {
+    outline: none;
+  }
+}
