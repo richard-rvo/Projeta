@@ -30,7 +30,7 @@ export default function PageMinutes() {
   const { state, showToast, openTaskInspector } = useContext(AppContext)
   const {
     minutes, setQuery, activeMinute, openMinute, createMinute,
-    updateActiveMinute, removeMinute, retrySave, saveStatus, error,
+    updateActiveMinute, removeMinute, retrySave, saveStatus, loading, error,
   } = useProjectMinutes(state.activeProjectId)
 
   const [search, setSearch] = useState('')
@@ -55,7 +55,11 @@ export default function PageMinutes() {
   }
   const createTaskSoon = () => showToast('Converter ação em tarefa chega na próxima versão.', 'info')
 
-  const isEmpty = !minutes.length && !search && !activeMinute
+  const noMinutes = !minutes.length && !search && !activeMinute
+  // Sem ata aberta, a lista é o único painel útil no celular.
+  const listVisible = showList || !activeMinute
+  const contentError = () =>
+    showToast('Esta ata não pôde ser aberta para edição. Recarregue a página.', 'error')
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -77,17 +81,19 @@ export default function PageMinutes() {
       </ViewBar>
       {error && <p role="alert" className="border-b border-line px-4 py-2 text-small text-sched-late">{error}</p>}
 
-      {isEmpty ? (
+      {noMinutes && loading ? (
+        <p role="status" className="p-6 text-small text-text-3">Carregando atas…</p>
+      ) : noMinutes ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
           <p className="text-title font-semibold text-text-1">Nenhuma ata neste projeto</p>
           <ViewBarButton variant="primary" onClick={() => create('status')}>Criar a primeira ata</ViewBarButton>
         </div>
       ) : (
         <div className="flex min-h-0 flex-1">
-          <aside className={cn('w-full flex-col border-r border-line bg-surface-1 md:flex md:w-[280px] md:shrink-0', showList ? 'flex' : 'hidden')}>
+          <aside className={cn('w-full flex-col border-r border-line bg-surface-1 md:flex md:w-[280px] md:shrink-0', listVisible ? 'flex' : 'hidden')}>
             <MinuteList minutes={minutes} activeId={activeMinute?.id} onOpen={open} onDelete={setToDelete} />
           </aside>
-          <main className={cn('min-w-0 flex-1 overflow-y-auto md:block', showList ? 'hidden' : 'block')}>
+          <main className={cn('min-w-0 flex-1 overflow-y-auto md:block', listVisible ? 'hidden' : 'block')}>
             {activeMinute ? (
               <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
                 <ViewBarButton icon={ArrowLeft} className="self-start md:hidden" onClick={() => setShowList(true)}>
@@ -99,6 +105,7 @@ export default function PageMinutes() {
                   content={activeMinute.content}
                   onChange={(content) => updateActiveMinute({ content })}
                   onCreateTask={createTaskSoon}
+                  onContentError={contentError}
                   onOpenTask={openTaskInspector}
                 />
               </div>

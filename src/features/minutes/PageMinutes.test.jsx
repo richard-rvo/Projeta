@@ -7,7 +7,11 @@ import PageMinutes from './PageMinutes'
 import { useProjectMinutes } from './useProjectMinutes'
 
 vi.mock('./useProjectMinutes', () => ({ useProjectMinutes: vi.fn() }))
-vi.mock('./editor/MinuteEditor', () => ({ default: () => <div data-testid="editor" /> }))
+vi.mock('./editor/MinuteEditor', () => ({
+  default: ({ onContentError }) => (
+    <button type="button" data-testid="editor" onClick={() => onContentError(new Error('x'))} />
+  ),
+}))
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -29,7 +33,7 @@ afterEach(async () => {
 const base = () => ({
   minutes: [], query: '', setQuery: vi.fn(), activeMinute: null, openMinute: vi.fn(),
   createMinute: vi.fn().mockResolvedValue(null), updateActiveMinute: vi.fn(),
-  removeMinute: vi.fn(), retrySave: vi.fn(), saveStatus: 'idle', error: '',
+  removeMinute: vi.fn(), retrySave: vi.fn(), saveStatus: 'idle', loading: false, error: '',
 })
 
 async function render(overrides) {
@@ -40,6 +44,7 @@ async function render(overrides) {
   root = createRoot(container)
   const ctx = { state: { activeProjectId: 'p1' }, showToast: vi.fn(), openTaskInspector: vi.fn() }
   await run(() => root.render(<AppContext.Provider value={ctx}><PageMinutes /></AppContext.Provider>))
+  hook.ctx = ctx
   return hook
 }
 
@@ -89,5 +94,26 @@ describe('PageMinutes', () => {
     const confirm = [...document.querySelectorAll('[role="dialog"] button')].find((b) => b.textContent === 'Excluir')
     await run(() => confirm.click())
     expect(hook.removeMinute).toHaveBeenCalledWith('a')
+  })
+
+  it('não mostra o estado vazio enquanto carrega', async () => {
+    await render({ loading: true })
+    expect(byText('Criar a primeira ata')).toBeUndefined()
+    expect(document.body.textContent).toContain('Carregando atas…')
+  })
+
+  it('sem ata aberta, a lista fica acessível e o painel principal oculto no celular', async () => {
+    await render({ minutes: [minute('a', 'Ata A', '2026-11-04T09:00')] })
+    expect(document.querySelector('aside').className).toContain('flex')
+    expect(document.querySelector('aside').className).not.toContain('hidden')
+    expect(document.querySelector('main').className).toContain('hidden')
+  })
+
+  it('erro de conteúdo da ata mostra aviso', async () => {
+    const m = { ...minute('a', 'Ata A', '2026-11-04T09:00'), content: {}, participants: '' }
+    const hook = await render({ minutes: [m], activeMinute: m })
+    await run(() => document.querySelector('[data-testid="editor"]').click())
+    expect(hook.ctx.showToast).toHaveBeenCalledWith(
+      'Esta ata não pôde ser aberta para edição. Recarregue a página.', 'error')
   })
 })

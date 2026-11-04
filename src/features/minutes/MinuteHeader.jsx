@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -6,13 +6,14 @@ const LABEL = 'text-micro font-medium text-text-3'
 
 /** Título e metadados da ata. Cada mudança chega por `onChange({ campo: valor })`. */
 export default function MinuteHeader({ minute, onChange }) {
-  const participantsRef = useRef(null)
+  const participantsId = `minute-${minute.id}-participants`
+  // O Textarea do design system não repassa ref; localizamos pelo id estável.
   useLayoutEffect(() => {
-    const el = participantsRef.current
+    const el = document.getElementById(participantsId)
     if (!el) return
     el.style.height = 'auto'
     el.style.height = `${el.scrollHeight}px`
-  }, [minute.participants])
+  }, [minute.participants, participantsId])
 
   const id = (field) => `minute-${minute.id}-${field}`
 
@@ -49,7 +50,6 @@ export default function MinuteHeader({ minute, onChange }) {
           <label htmlFor={id('participants')} className={LABEL}>Participantes</label>
           <Textarea
             id={id('participants')}
-            ref={participantsRef}
             rows={1}
             className="min-h-8 resize-none overflow-hidden"
             value={minute.participants || ''}
