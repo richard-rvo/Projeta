@@ -116,7 +116,7 @@
   /* ── Tipografia ───────────────────────────────────────────────
      SF primeiro (Apple nativo), Inter como fallback.             */
   --font-ui:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui,
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter Variable', 'Inter', system-ui,
     'Segoe UI', sans-serif;
   --font-numeric:
     'SF Mono', 'SFMono-Regular', ui-monospace, 'Menlo', monospace;
