@@ -1,10 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
+import pg from 'pg';
 
 const RUN_ID = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 const PASSWORD = `Rls!${RUN_ID}-Aa1`;
 
-/** Only users/workspaces created by this process; never cleaned by pattern. */
-const created = { users: [], workspaces: [] };
+/** Only users/workspaces/invites created by this process; never cleaned by pattern. */
+const created = { users: [], workspaces: [], inviteEmails: [] };
+
+export const runId = RUN_ID;
 
 export function assertConfirmedTarget(url, confirmRef) {
   if (typeof confirmRef !== 'string' || confirmRef.length === 0) {
@@ -33,6 +36,39 @@ export function anonClient() {
   return createClient(url, process.env.RLS_SUPABASE_ANON_KEY, opts);
 }
 
+/**
+ * Direct SQL as the database owner (RLS_DB_URL). Only for what the REST API
+ * cannot reach, e.g. seeding private.platform_admins. One connection per call.
+ */
+export async function sql(text, params = []) {
+  guardedEnv();
+  const dbUrl = process.env.RLS_DB_URL;
+  if (typeof dbUrl !== 'string' || !dbUrl.includes(process.env.RLS_CONFIRM_PROJECT_REF)) {
+    throw new Error('RLS_DB_URL does not match RLS_CONFIRM_PROJECT_REF: refusing to run.');
+  }
+  const client = new pg.Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+  await client.connect();
+  try {
+    return await client.query(text, params);
+  } finally {
+    await client.end();
+  }
+}
+
+export function testEmail(label) {
+  return `rls-${label}-${RUN_ID}@projeta.test`.toLowerCase();
+}
+
+/** Pending platform invite (service role bypasses RLS); tracked for cleanup. */
+export async function createInvite(email, fields = {}) {
+  const admin = adminClient();
+  created.inviteEmails.push(email);
+  return must(
+    await admin.from('platform_invites').insert({ email, note: 'rls', ...fields }).select().single(),
+    'createInvite',
+  );
+}
+
 function must({ data, error }, what) {
   if (error) throw new Error(`${what}: ${error.code ?? ''} ${error.message}`);
   return data;
@@ -41,7 +77,9 @@ function must({ data, error }, what) {
 export async function createTestUser(label) {
   const url = guardedEnv();
   const admin = adminClient();
-  const email = `rls-${label}-${RUN_ID}@projeta.test`;
+  const email = testEmail(label);
+  // Cadastro só por convite: o trigger em auth.users exige um convite pendente.
+  await createInvite(email);
   const res = await admin.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true });
   const id = must(res, 'createUser').user.id;
   created.users.push(id);
@@ -92,7 +130,7 @@ export async function createAnomaly(user, project, fields = {}) {
 }
 
 export async function cleanupTestUsers() {
-  if (created.users.length === 0) return;
+  if (created.users.length === 0 && created.inviteEmails.length === 0) return;
   const admin = adminClient();
   for (const id of created.users) {
     // Workspaces owned by this run's users (owner_id is on delete restrict).
@@ -101,6 +139,11 @@ export async function cleanupTestUsers() {
     const { error } = await admin.auth.admin.deleteUser(id);
     if (error) console.error('cleanup deleteUser failed:', error.message);
   }
+  if (created.inviteEmails.length > 0) {
+    const { error } = await admin.from('platform_invites').delete().in('email', created.inviteEmails);
+    if (error) console.error('cleanup invites failed:', error.message);
+  }
   created.users.length = 0;
   created.workspaces.length = 0;
+  created.inviteEmails.length = 0;
 }

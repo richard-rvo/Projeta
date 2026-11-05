@@ -1,11 +1,16 @@
--- Projeta: configura um usuário proprietário (admin) do workspace.
+-- Projeta: configura o administrador da plataforma e o workspace dele.
 --
 -- Execute no SQL Editor do Supabase com uma sessão administrativa.
 -- Troque apenas os valores abaixo antes de executar.
 --
--- No schema atual não existe um admin global: o nível administrativo é o
--- proprietário (owner) de um workspace. Este script não altera senha,
--- e-mail ou qualquer credencial em auth.users.
+-- O administrador da plataforma é quem está em private.platform_admins: vê a
+-- página Administração (convites, usuários, uso) e não pode ser revogado pela
+-- Edge Function admin-users. Este script também garante o acesso ativo
+-- (public.user_access) e o workspace pessoal. Não altera senha, e-mail ou
+-- qualquer credencial em auth.users.
+--
+-- O usuário precisa existir em auth.users. Com o cadastro só por convite, um
+-- usuário novo só nasce com convite pendente em public.platform_invites.
 --
 -- Notas do modelo atual:
 --   * O workspace criado aqui é o pessoal (is_personal = true); só pode existir
@@ -36,6 +41,18 @@ begin
     raise exception 'Usuário não encontrado para o e-mail: %', v_email;
   end if;
 
+  -- Administrador da plataforma e acesso ativo (idempotente).
+  insert into private.platform_admins (user_id)
+  values (v_user_id)
+  on conflict (user_id) do nothing;
+
+  insert into public.user_access (user_id, status)
+  values (v_user_id, 'active')
+  on conflict (user_id) do update
+    set status = 'active',
+        revoked_at = null,
+        revoked_by = null;
+
   -- Garante o perfil público mesmo se o trigger de criação não tiver sido
   -- executado ou se o usuário tiver sido criado fora do fluxo do aplicativo.
   insert into public.profiles (id, display_name)
@@ -64,7 +81,7 @@ begin
      where id = v_workspace_id;
   end if;
 
-  raise notice 'Usuário % configurado como owner do workspace % (%).',
+  raise notice 'Usuário % configurado como administrador da plataforma e owner do workspace % (%).',
     v_email, v_workspace_name, v_workspace_id;
 end
 $$;
@@ -79,8 +96,11 @@ select
   w.name as workspace_name,
   w.owner_id,
   w.is_personal,
-  wm.role
+  wm.role,
+  ua.status as access_status,
+  exists (select 1 from private.platform_admins pa where pa.user_id = u.id) as is_platform_admin
 from auth.users u
 join public.workspace_members wm on wm.user_id = u.id
 join public.workspaces w on w.id = wm.workspace_id
+left join public.user_access ua on ua.user_id = u.id
 where lower(u.email) = lower('admin@exemplo.com');

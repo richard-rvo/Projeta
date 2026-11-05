@@ -38,6 +38,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^4.2.1",
     "jsdom": "^29.1.1",
+    "pg": "^8.23.1",
     "puppeteer": "^25.6.0",
     "supabase": "^2.115.0",
     "tailwindcss": "^4.3.3",
