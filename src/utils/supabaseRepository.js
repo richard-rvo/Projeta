@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { DEFAULT_CALENDAR, DEFAULT_CALENDAR_ID, calendarsOf } from './calendar';
 import { readDependencies } from './dependencies';
 import { generateId } from './ids';
+import { ACCESS_REVOKED_MESSAGE } from './authErrors';
 
 /** Erro cuja mensagem já está pronta para a interface: friendlyDbError a devolve como está. */
 export function friendlyError(message, extra) {
@@ -27,7 +28,7 @@ function isServerRefusal(error, message) {
   return error?.status === 403 && !SQLSTATE_PATTERN.test(String(error?.code || ''));
 }
 
-export const ACCESS_REVOKED_MESSAGE = 'Seu acesso ao Projeta foi revogado. Fale com o administrador.';
+export { ACCESS_REVOKED_MESSAGE };
 export const INVITE_ONLY_MESSAGE = 'O acesso ao Projeta é feito por convite.';
 
 /** O servidor recusou o usuário revogado (ensure_personal_workspace levanta access_revoked). */

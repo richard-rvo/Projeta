@@ -7,12 +7,12 @@ import { authErrorMessage, isTransientAuthError } from '@/utils/authErrors';
 
 const FORGOT_MESSAGE = 'Se houver uma conta com este e-mail, enviamos um link para redefinir a senha.';
 
-export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn, requestPasswordReset, updatePassword }) {
+export default function AuthPage({ mode = 'login', notice = '', onModeChange, onBack, signIn, requestPasswordReset, updatePassword }) {
   const [form, setForm] = useState({ email: '', password: '', confirm: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(notice || '');
   const isForgot = mode === 'forgot';
   const isInvite = mode === 'invite';
   const isReset = mode === 'reset' || isInvite;

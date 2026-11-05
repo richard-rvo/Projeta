@@ -35,6 +35,10 @@ describe('authErrorMessage', () => {
   it('traduz e-mail inválido', () => {
     expect(authErrorMessage({ code: 'email_address_invalid', status: 400 })).toBe('E-mail inválido.');
   });
+  it('traduz user_banned como acesso revogado', () => {
+    expect(authErrorMessage({ code: 'user_banned', status: 400, message: 'User is banned' }))
+      .toBe('Seu acesso ao Projeta foi revogado. Fale com o administrador.');
+  });
   it('traduz cadastro desativado', () => {
     expect(authErrorMessage({ code: 'signup_disabled', status: 422 })).toBe('O acesso ao Projeta é feito por convite.');
   });

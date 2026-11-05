@@ -29,7 +29,8 @@ export function PageScroll({ children }) {
 
 function App() {
   const { state, signIn, requestPasswordReset, updatePassword, retryLoad, signOut } = useContext(AppContext);
-  const [authMode, setAuthMode] = useState('landing');
+  // Aviso do link de acesso (ex.: convite expirado): abre direto no login para mostrá-lo.
+  const [authMode, setAuthMode] = useState(() => (state.authNotice ? 'login' : 'landing'));
   useGlobalShortcuts();
 
   if (state.auth.status === 'loading') {
@@ -65,7 +66,7 @@ function App() {
   if (!state.auth.user) {
     return authMode === 'landing'
       ? <PublicLanding onStart={() => setAuthMode('login')} />
-      : <AuthPage mode={authMode} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} requestPasswordReset={requestPasswordReset} />;
+      : <AuthPage mode={authMode} notice={state.authNotice} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} requestPasswordReset={requestPasswordReset} />;
   }
 
   const renderPage = () => {

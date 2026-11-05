@@ -184,10 +184,14 @@ describe('contrato final', () => {
   })
 
   it('KPIs e top 5 degradam de forma independente', async () => {
+    // Erro cru (não mapeado) é registrado no console de propósito; aqui ele é esperado.
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     repo.listAdminUsers.mockRejectedValue(new Error('x'))
     await mount(<PageAdmin />)
     expect(document.querySelector('section[aria-label="Indicadores"]')).toBeTruthy()
     expect(document.querySelector('[role="alert"]')).toBeTruthy()
+    expect(consoleError).toHaveBeenCalled()
+    consoleError.mockRestore()
   })
 })
 
