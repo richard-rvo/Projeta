@@ -14,7 +14,7 @@ function fakeDb(tables) {
     const rows = tables[name];
     let op = 'select', payload, filters = [], opts;
     const run = () => {
-      const match = rows.filter((r) => filters.every(([k, v]) => r[k] === v));
+      const match = rows.filter((r) => filters.every((f) => (typeof f === 'function' ? f(r) : r[f[0]] === f[1])));
       calls.push({ table: name, op, payload, filters });
       if (op === 'insert') {
         const row = { id: `00000000-0000-4000-8000-${String(rows.length + 100).padStart(12, '0')}`, sent_count: 0, status: 'pending', note: '', accepted_user_id: null, ...payload };
@@ -37,6 +37,8 @@ function fakeDb(tables) {
       upsert: (p, o) => { op = 'upsert'; payload = p; opts = o; return b; },
       delete: () => { op = 'delete'; return b; },
       eq: (k, v) => { filters.push([k, v]); return b; },
+      not: (k, o, v) => { if (o !== 'is' || v !== null) throw new Error(`fakeDb: not(${k}, ${o}) sem suporte`); filters.push((r) => r[k] != null); return b; },
+      limit: () => b,
       maybeSingle: async () => { const r = run(); return { data: r.data[0] ?? null, error: r.error }; },
       single: async () => { const r = run(); return { data: r.data[0] ?? null, error: r.error }; },
       then: (res, rej) => Promise.resolve(run()).then(res, rej),
@@ -51,6 +53,7 @@ function setup({ rejectExpired = false, adminRpcError = false, failBan = false, 
   const db = fakeDb(t);
   const invites = [];
   const bans = [];
+  const seq = [];
   const userList = users ?? [
     { user_id: ADMIN, email: 'admin@x.com', is_admin: true, status: 'active', last_sign_in_at: 'x' },
     { user_id: OTHER_ADMIN, email: 'admin2@x.com', is_admin: true, status: 'active', last_sign_in_at: 'x' },
@@ -66,8 +69,8 @@ function setup({ rejectExpired = false, adminRpcError = false, failBan = false, 
             const inv = t.platform_invites.find((i) => i.email === email && i.status === 'pending');
             if (!inv || new Date(inv.expires_at) < new Date()) return { data: {}, error: { message: 'invite_required' } };
           }
-          invites.push({ email, o }); return { data: {}, error: inviteError }; },
-        updateUserById: async (id, attrs) => { bans.push({ id, attrs }); return { data: {}, error: failBan ? { message: 'boom' } : null }; },
+          seq.push('invite'); invites.push({ email, o }); return { data: {}, error: inviteError }; },
+        updateUserById: async (id, attrs) => { seq.push(`ban:${attrs.ban_duration}`); bans.push({ id, attrs }); return { data: {}, error: failBan ? { message: 'boom' } : null }; },
         getUserById: async () => getUserResult ?? { data: { user: { last_sign_in_at: null } }, error: null },
       },
     },
@@ -84,7 +87,7 @@ function setup({ rejectExpired = false, adminRpcError = false, failBan = false, 
       headers: { ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}), ...(origin ? { Origin: origin } : {}), 'Content-Type': 'application/json' },
       body: method === 'POST' ? JSON.stringify(body) : undefined,
     }));
-  return { call, t, invites, bans, handler };
+  return { call, t, invites, bans, seq, handler };
 }
 const json = (r) => r.json();
 
@@ -201,25 +204,53 @@ describe('admin-users: invite', () => {
     expect(t.platform_invites[1]).toMatchObject({ status: 'pending', sent_count: 1 });
     expect(invites).toHaveLength(1);
   });
-  it('conta revogada: convite NOVO, nunca reaproveita revogado/aceito', async () => {
-    const users = [{ user_id: USER, email: 'ana@x.com', is_admin: false, status: 'revoked', last_sign_in_at: 'x' }];
-    const acc = { id: '22222222-2222-4222-8222-222222222222', email: 'ana@x.com', status: 'accepted', sent_count: 1, note: '', expires_at: '2020-01-01T00:00:00Z' };
-    const { call, t, invites } = setup({ users, tables: { platform_invites: [acc] } });
+  const REVOKED_ANA = [{ user_id: USER, email: 'ana@x.com', is_admin: false, status: 'revoked', last_sign_in_at: 'x' }];
+  it('conta revogada que já concluiu o primeiro acesso -> 409 user_exists (usar Restaurar), nada criado', async () => {
+    const acc = { id: '22222222-2222-4222-8222-222222222222', email: 'ana@x.com', status: 'accepted', sent_count: 1, note: '', accepted_user_id: USER, accepted_at: '2026-01-01T00:00:00Z', expires_at: '2020-01-01T00:00:00Z' };
+    const { call, t, invites, bans } = setup({ users: REVOKED_ANA, tables: { platform_invites: [acc] } });
+    const r = await call({ action: 'invite', email: 'ana@x.com' });
+    expect(r.status).toBe(409);
+    const e = (await json(r)).error;
+    expect(e.code).toBe('user_exists');
+    expect(e.message).toBe('Esta pessoa já tinha acesso. Use "Restaurar" na lista de usuários.');
+    expect(invites).toHaveLength(0);
+    expect(bans).toHaveLength(0);
+    expect(t.platform_invites).toEqual([acc]);
+  });
+  it('conta revogada com convite aceito mas depois revogado continua indo para Restaurar (vale accepted_at)', async () => {
+    const acc = { id: '22222222-2222-4222-8222-222222222222', email: 'ana@x.com', status: 'revoked', sent_count: 1, note: '', accepted_user_id: USER, accepted_at: '2026-01-01T00:00:00Z', expires_at: '2020-01-01T00:00:00Z' };
+    const { call, invites } = setup({ users: REVOKED_ANA, tables: { platform_invites: [acc] } });
+    expect((await call({ action: 'invite', email: 'ana@x.com' })).status).toBe(409);
+    expect(invites).toHaveLength(0);
+  });
+  it('conta revogada que nunca concluiu o primeiro acesso: desbane ANTES de enviar e cria convite NOVO', async () => {
+    const old = { id: '22222222-2222-4222-8222-222222222222', email: 'ana@x.com', status: 'revoked', sent_count: 1, note: '', accepted_user_id: USER, accepted_at: null, expires_at: '2020-01-01T00:00:00Z' };
+    const { call, t, invites, bans, seq } = setup({ users: REVOKED_ANA, tables: { platform_invites: [old] } });
     const r = await call({ action: 'invite', email: 'ana@x.com' });
     expect(r.status).toBe(200);
-    expect(t.platform_invites[0].status).toBe('accepted');
+    expect((await json(r)).data).not.toHaveProperty('delivered');
+    expect(bans).toEqual([{ id: USER, attrs: { ban_duration: 'none' } }]);
+    expect(seq).toEqual(['ban:none', 'invite']);
+    expect(t.platform_invites[0].status).toBe('revoked');
     expect(t.platform_invites).toHaveLength(2);
-    expect(t.platform_invites[1].status).toBe('pending');
+    expect(t.platform_invites[1]).toMatchObject({ status: 'pending', sent_count: 1 });
     expect(invites).toHaveLength(1);
   });
-  it('conta revogada e provedor diz "já registrado": desbane e responde delivered false', async () => {
-    const users = [{ user_id: USER, email: 'ana@x.com', is_admin: false, status: 'revoked', last_sign_in_at: 'x' }];
-    const { call, t, bans } = setup({ users, inviteError: { code: 'email_exists', message: 'already been registered' } });
+  it('conta revogada sem primeiro acesso: falha ao desbanir -> 502 e nada é criado nem enviado', async () => {
+    const { call, t, invites } = setup({ users: REVOKED_ANA, failBan: true });
+    const r = await call({ action: 'invite', email: 'ana@x.com' });
+    expect(r.status).toBe(502);
+    expect((await json(r)).error.code).toBe('unban_failed');
+    expect(t.platform_invites).toHaveLength(0);
+    expect(invites).toHaveLength(0);
+  });
+  it('conta revogada sem primeiro acesso e provedor diz "já registrado": convite fica pendente, delivered false', async () => {
+    const { call, t, bans } = setup({ users: REVOKED_ANA, inviteError: { code: 'email_exists', message: 'already been registered' } });
     const r = await call({ action: 'invite', email: 'ana@x.com' });
     expect(r.status).toBe(200);
     const d = (await json(r)).data;
     expect(d).toMatchObject({ delivered: false, reason: 'existing_account' });
-    expect(d.message).toBe('Convite registrado. Como a pessoa já tem conta, peça para usar "Esqueci minha senha".');
+    expect(d.message).toBe('Convite registrado, mas o e-mail não foi enviado porque a pessoa já tem cadastro. Peça para ela usar "Esqueci minha senha" para entrar.');
     expect(bans).toEqual([{ id: USER, attrs: { ban_duration: 'none' } }]);
     expect(t.platform_invites).toHaveLength(1);
     expect(t.platform_invites[0].status).toBe('pending');
