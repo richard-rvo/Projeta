@@ -458,8 +458,9 @@ export function AppProvider({ children }) {
       confirmLocalSave();
       return true;
     } catch (error) {
-      reportLocalSaveError(error);
-      throw toFriendlyError(error);
+      const friendly = toFriendlyError(error);
+      reportLocalSaveError(friendly);
+      throw friendly;
     }
   }, [confirmLocalSave, reportLocalSaveError, state.anomalies, state.projects, state.tasks]);
 
