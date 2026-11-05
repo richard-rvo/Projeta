@@ -63,21 +63,27 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
   const ok = (request, data = null) => respond(request, 200, { ok: true, data });
 
   async function sendInvite(invite) {
+    // Renovar validade e limpar erro ANTES: o gatilho do banco só aceita convite pendente e não expirado.
+    const now = new Date();
+    const { error: renewErr } = await adminClient
+      .from('platform_invites')
+      .update({ expires_at: new Date(now.getTime() + INVITE_TTL_MS).toISOString(), last_error: null })
+      .eq('id', invite.id);
+    if (renewErr) throw new HttpError(500, 'internal', MSG.internal);
+
     const { error } = await adminClient.auth.admin.inviteUserByEmail(invite.email, { redirectTo: siteUrl });
     if (error) {
-      await adminClient.from('platform_invites').update({ last_error: truncate(error.message) }).eq('id', invite.id);
+      const { error: logErr } = await adminClient
+        .from('platform_invites')
+        .update({ last_error: truncate(error.message) })
+        .eq('id', invite.id);
+      if (logErr) throw new HttpError(500, 'internal', MSG.internal);
       if (isAlreadyRegistered(error)) throw new HttpError(409, 'user_exists', MSG.userExists);
       throw new HttpError(502, 'send_failed', MSG.sendFailed);
     }
-    const now = new Date();
     const { data, error: upErr } = await adminClient
       .from('platform_invites')
-      .update({
-        sent_count: (invite.sent_count ?? 0) + 1,
-        last_sent_at: now.toISOString(),
-        last_error: null,
-        expires_at: new Date(now.getTime() + INVITE_TTL_MS).toISOString(),
-      })
+      .update({ sent_count: (invite.sent_count ?? 0) + 1, last_sent_at: new Date().toISOString() })
       .eq('id', invite.id)
       .select()
       .single();
@@ -128,7 +134,8 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
       invite = data;
       created = true;
     } else if (typeof note === 'string' && note && note !== invite.note) {
-      await adminClient.from('platform_invites').update({ note }).eq('id', invite.id);
+      const { error: noteErr } = await adminClient.from('platform_invites').update({ note }).eq('id', invite.id);
+      if (noteErr) throw new HttpError(500, 'internal', MSG.internal);
     }
 
     try {
@@ -167,15 +174,19 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
     if (banErr) throw new HttpError(502, 'ban_failed', MSG.banFailed);
   }
 
-  async function actRevokeInvite({ inviteId }, { callerId }) {
+  async function actRevokeInvite({ inviteId }, { callerId, userClient }) {
     const invite = await loadInvite(inviteId);
     if (invite.status === 'revoked') return invite;
     if (invite.status === 'accepted') throw new HttpError(409, 'invite_accepted', MSG.inviteAccepted);
 
     // Convite pendente já vinculado a uma conta que nunca entrou: bloquear também a conta.
     if (invite.accepted_user_id) {
-      const { data } = await adminClient.auth.admin.getUserById(invite.accepted_user_id);
-      if (data?.user?.last_sign_in_at) throw new HttpError(409, 'invite_accepted', MSG.inviteAccepted);
+      const linkedId = invite.accepted_user_id;
+      if (linkedId === callerId) throw new HttpError(400, 'cannot_revoke_self', MSG.selfRevoke);
+      const linked = (await listUsers(userClient)).find((u) => u.user_id === linkedId);
+      if (!linked) throw new HttpError(404, 'user_not_found', MSG.userNotFound);
+      if (linked.is_admin) throw new HttpError(400, 'cannot_revoke_admin', MSG.adminRevoke);
+      if (linked.last_sign_in_at) throw new HttpError(409, 'invite_accepted', MSG.inviteAccepted);
       await banAndRevoke(invite.accepted_user_id, callerId);
     }
     const { data, error } = await adminClient
@@ -252,8 +263,10 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
       return ok(request, data);
     } catch (e) {
       if (e instanceof HttpError) {
+        if (e.status >= 500) console.error('admin-users: error', { code: e.code, status: e.status });
         return respond(request, e.status, { ok: false, error: { code: e.code, message: e.message } });
       }
+      console.error('admin-users: unexpected error', { name: e?.name, code: e?.code, status: e?.status });
       return respond(request, 500, { ok: false, error: { code: 'internal', message: MSG.internal } });
     }
   };

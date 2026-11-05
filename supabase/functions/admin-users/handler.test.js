@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createHandler } from './handler.js';
 
 const ADMIN = '00000000-0000-4000-8000-000000000001';
@@ -46,7 +46,7 @@ function fakeDb(tables) {
   return { from, calls };
 }
 
-function setup({ caller = ADMIN, isAdmin = true, inviteError = null, users, tables = {}, getUserResult } = {}) {
+function setup({ rejectExpired = false, adminRpcError = false, failBan = false, failFrom = null, listError = false, caller = ADMIN, isAdmin = true, inviteError = null, users, tables = {}, getUserResult } = {}) {
   const t = { platform_invites: [], user_access: [], ...tables };
   const db = fakeDb(t);
   const invites = [];
@@ -58,18 +58,24 @@ function setup({ caller = ADMIN, isAdmin = true, inviteError = null, users, tabl
     { user_id: NEVER, email: 'nunca@x.com', is_admin: false, status: 'active', last_sign_in_at: null },
   ];
   const adminClient = {
-    from: db.from,
+    from: (n) => { const b = db.from(n); if (failFrom && failFrom.table === n) { const orig = b[failFrom.op]; b[failFrom.op] = (...a) => { const r = orig(...a); const th = r.then; r.then = (res, rej) => Promise.resolve({ data: null, error: { message: 'db' } }).then(res, rej); r.single = async () => ({ data: null, error: { message: 'db' } }); r.maybeSingle = r.single; void th; return r; }; } return b; },
     auth: {
       admin: {
-        inviteUserByEmail: async (email, o) => { invites.push({ email, o }); return { data: {}, error: inviteError }; },
-        updateUserById: async (id, attrs) => { bans.push({ id, attrs }); return { data: {}, error: null }; },
+        inviteUserByEmail: async (email, o) => {
+          if (rejectExpired) {
+            const inv = t.platform_invites.find((i) => i.email === email && i.status === 'pending');
+            if (!inv || new Date(inv.expires_at) < new Date()) return { data: {}, error: { message: 'invite_required' } };
+          }
+          invites.push({ email, o }); return { data: {}, error: inviteError }; },
+        updateUserById: async (id, attrs) => { bans.push({ id, attrs }); return { data: {}, error: failBan ? { message: 'boom' } : null }; },
         getUserById: async () => getUserResult ?? { data: { user: { last_sign_in_at: null } }, error: null },
       },
     },
   };
+  const isAdminRpcValue = () => (adminRpcError ? null : isAdmin);
   const createUserClient = (jwt) => ({
     auth: { getUser: async () => (jwt === 'bad' ? { data: {}, error: { message: 'x' } } : { data: { user: { id: caller } }, error: null }) },
-    rpc: async (fn) => (fn === 'am_i_platform_admin' ? { data: isAdmin, error: null } : { data: userList, error: null }),
+    rpc: async (fn) => (fn === 'admin_list_users' && listError ? { data: null, error: { message: 'x' } } : fn === 'am_i_platform_admin' ? { data: isAdminRpcValue(), error: adminRpcError ? { message: 'rpc down' } : null } : { data: userList, error: null }),
   });
   const handler = createHandler({ createUserClient, adminClient, siteUrl: SITE, allowedOrigins: [SITE, 'http://localhost:5174'] });
   const call = (body, { jwt = 'tok', method = 'POST', origin } = {}) =>
@@ -81,6 +87,9 @@ function setup({ caller = ADMIN, isAdmin = true, inviteError = null, users, tabl
   return { call, t, invites, bans, handler };
 }
 const json = (r) => r.json();
+
+beforeEach(() => { vi.spyOn(console, 'error').mockImplementation(() => {}); });
+afterEach(() => { vi.restoreAllMocks(); });
 
 describe('admin-users: autenticação e CORS', () => {
   it('sem JWT -> 401', async () => {
@@ -269,5 +278,66 @@ describe('admin-users: revoke_user / restore_user', () => {
     expect((await call({ action: 'restore_user', userId: USER })).status).toBe(200);
     expect(t.user_access[0]).toMatchObject({ status: 'active', revoked_at: null, revoked_by: null });
     expect(bans).toEqual([{ id: USER, attrs: { ban_duration: 'none' } }]);
+  });
+});
+
+describe('admin-users: correções da rodada 1', () => {
+  const INV = '11111111-1111-4111-8111-111111111111';
+  const row = (o) => ({ id: INV, email: 'a@b.com', status: 'pending', sent_count: 1, note: '', accepted_user_id: null, expires_at: '2020-01-01T00:00:00Z', ...o });
+
+  it('resend de convite pendente expirado renova a validade antes do provedor', async () => {
+    const { call, t, invites } = setup({ rejectExpired: true, tables: { platform_invites: [row()] } });
+    const r = await call({ action: 'resend', inviteId: INV });
+    expect(r.status).toBe(200);
+    expect(invites).toHaveLength(1);
+    expect(t.platform_invites[0].sent_count).toBe(2);
+  });
+  it('invite de novo para e-mail com convite expirado também funciona', async () => {
+    const { call, invites } = setup({ rejectExpired: true, tables: { platform_invites: [row()] } });
+    expect((await call({ action: 'invite', email: 'a@b.com' })).status).toBe(200);
+    expect(invites).toHaveLength(1);
+  });
+  it('falha do provedor limpa erro antigo e depois grava o novo', async () => {
+    const { call, t } = setup({ inviteError: { message: 'novo' }, tables: { platform_invites: [row({ last_error: 'velho' })] } });
+    expect((await call({ action: 'resend', inviteId: INV })).status).toBe(502);
+    expect(t.platform_invites[0].last_error).toBe('novo');
+  });
+  it('revoke_invite: usuário vinculado é o próprio chamador -> 400 sem ban', async () => {
+    const { call, bans } = setup({ tables: { platform_invites: [row({ accepted_user_id: ADMIN })] } });
+    const r = await call({ action: 'revoke_invite', inviteId: INV });
+    expect(r.status).toBe(400);
+    expect(bans).toHaveLength(0);
+  });
+  it('revoke_invite: usuário vinculado é admin -> 400 sem ban', async () => {
+    const { call, bans } = setup({ tables: { platform_invites: [row({ accepted_user_id: OTHER_ADMIN })] } });
+    expect((await call({ action: 'revoke_invite', inviteId: INV })).status).toBe(400);
+    expect(bans).toHaveLength(0);
+  });
+  it('revoke_invite: usuário vinculado já entrou -> 409 sem ban', async () => {
+    const { call, bans } = setup({ tables: { platform_invites: [row({ accepted_user_id: USER })] } });
+    expect((await call({ action: 'revoke_invite', inviteId: INV })).status).toBe(409);
+    expect(bans).toHaveLength(0);
+  });
+  it('revoke_invite: falha ao consultar usuários -> 500 sem ban', async () => {
+    const { call, bans, t } = setup({ users: null, tables: { platform_invites: [row({ accepted_user_id: NEVER })] }, listError: true });
+    expect((await call({ action: 'revoke_invite', inviteId: INV })).status).toBe(500);
+    expect(bans).toHaveLength(0);
+    expect(t.platform_invites[0].status).toBe('pending');
+  });
+  it('erro na RPC am_i_platform_admin -> 403 (fecha por padrão)', async () => {
+    const { call, invites } = setup({ adminRpcError: true });
+    expect((await call({ action: 'invite', email: 'a@b.com' })).status).toBe(403);
+    expect(invites).toHaveLength(0);
+  });
+  it('falha do ban em revoke_user deixa user_access revoked e responde 502', async () => {
+    const { call, t } = setup({ failBan: true });
+    const r = await call({ action: 'revoke_user', userId: USER });
+    expect(r.status).toBe(502);
+    expect(t.user_access[0]).toMatchObject({ user_id: USER, status: 'revoked' });
+  });
+  it('falha ao renovar/gravar o convite -> 500 e nada é enviado', async () => {
+    const { call, invites } = setup({ failFrom: { table: 'platform_invites', op: 'update' }, tables: { platform_invites: [row()] } });
+    expect((await call({ action: 'resend', inviteId: INV })).status).toBe(500);
+    expect(invites).toHaveLength(0);
   });
 });
