@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { Suspense, useContext, useState } from 'react';
 import { AppContext } from './context/AppContext';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import AppRail from './components/shell/AppRail';
@@ -13,7 +13,11 @@ import PageReports from './pages/PageReports';
 import PageSettings from './pages/PageSettings';
 import PublicLanding from './pages/PublicLanding';
 import AuthPage from './pages/AuthPage';
+import LazyErrorBoundary from './components/LazyErrorBoundary';
 import WorkspaceLoadError from './components/shell/WorkspaceLoadError';
+import AccessRevoked from './components/shell/AccessRevoked';
+
+const PageAdmin = React.lazy(() => import('./features/admin/PageAdmin'));
 
 /**
  * Contêiner de rolagem para views que são documentos, não superfícies.
@@ -24,8 +28,9 @@ export function PageScroll({ children }) {
 }
 
 function App() {
-  const { state, signIn, signUp, requestPasswordReset, updatePassword, retryLoad, signOut } = useContext(AppContext);
-  const [authMode, setAuthMode] = useState('landing');
+  const { state, signIn, requestPasswordReset, updatePassword, retryLoad, signOut } = useContext(AppContext);
+  // Aviso do link de acesso (ex.: convite expirado): abre direto no login para mostrá-lo.
+  const [authMode, setAuthMode] = useState(() => (state.authNotice ? 'login' : 'landing'));
   useGlobalShortcuts();
 
   if (state.auth.status === 'loading') {
@@ -33,6 +38,14 @@ function App() {
   }
 
   // Falha ao carregar não é "deslogado": mostra o erro em vez da página pública.
+  if (state.auth.status === 'error' && state.auth.errorCode === 'access_revoked') {
+    return (
+      <>
+        <AccessRevoked message={state.auth.error} onSignOut={signOut} />
+        <Toast />
+      </>
+    );
+  }
   if (state.auth.status === 'error') {
     return (
       <>
@@ -46,10 +59,14 @@ function App() {
     return <AuthPage mode="reset" updatePassword={updatePassword} />;
   }
 
+  if (state.auth.user && state.auth.mustSetPassword) {
+    return <AuthPage mode="invite" updatePassword={updatePassword} />;
+  }
+
   if (!state.auth.user) {
     return authMode === 'landing'
       ? <PublicLanding onStart={() => setAuthMode('login')} />
-      : <AuthPage mode={authMode} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} signUp={signUp} requestPasswordReset={requestPasswordReset} />;
+      : <AuthPage mode={authMode} notice={state.authNotice} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} requestPasswordReset={requestPasswordReset} />;
   }
 
   const renderPage = () => {
@@ -62,6 +79,13 @@ function App() {
         return <PageScroll><PageReports /></PageScroll>;
       case 'pageSettings':
         return <PageScroll><PageSettings /></PageScroll>;
+      case 'pageAdmin':
+        if (!state.auth.isPlatformAdmin) return null;
+        return (
+          <LazyErrorBoundary>
+            <Suspense fallback={null}><PageAdmin /></Suspense>
+          </LazyErrorBoundary>
+        );
       case 'pagePortfolio':
       default:
         return <PagePortfolio />;

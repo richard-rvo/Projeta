@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { DEFAULT_CALENDAR, DEFAULT_CALENDAR_ID, calendarsOf } from './calendar';
 import { readDependencies } from './dependencies';
 import { generateId } from './ids';
+import { ACCESS_REVOKED_MESSAGE } from './authErrors';
 
 /** Erro cuja mensagem já está pronta para a interface: friendlyDbError a devolve como está. */
 export function friendlyError(message, extra) {
@@ -27,11 +28,21 @@ function isServerRefusal(error, message) {
   return error?.status === 403 && !SQLSTATE_PATTERN.test(String(error?.code || ''));
 }
 
+export { ACCESS_REVOKED_MESSAGE };
+export const INVITE_ONLY_MESSAGE = 'O acesso ao Projeta é feito por convite.';
+
+/** O servidor recusou o usuário revogado (ensure_personal_workspace levanta access_revoked). */
+export function isAccessRevoked(error) {
+  return String(error?.message || '').includes('access_revoked');
+}
+
 /** Mensagem em português para qualquer erro de dados. Nunca devolve o texto cru do servidor. */
 export function friendlyDbError(error) {
   if (error?.friendly) return error.message;
   const message = String(error?.message || '');
   if (`${error?.code || ''} ${message}`.includes('plan_limit_projects')) return 'Você atingiu o limite de projetos do seu plano.';
+  if (isAccessRevoked(error)) return ACCESS_REVOKED_MESSAGE;
+  if (message.includes('invite_required')) return INVITE_ONLY_MESSAGE;
   if (error?.code === '42501') return 'Você não tem permissão para esta ação.';
   if (error?.code === '23514') return 'Algum campo está fora do formato ou do tamanho permitido.';
   if (error?.code === '23503') return 'Um item vinculado não existe mais. Recarregue a página.';

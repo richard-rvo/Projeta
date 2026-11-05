@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   FileBarChart,
   Settings,
+  ShieldCheck,
   Sun,
   Moon,
   Pin,
@@ -21,6 +22,8 @@ const NAV_ITEMS = [
   { id: 'pageReports', icon: FileBarChart, label: 'Relatórios' },
   { id: 'pageSettings', icon: Settings, label: 'Configurações' },
 ];
+
+const ADMIN_ITEM = { id: 'pageAdmin', icon: ShieldCheck, label: 'Administração' };
 
 const RAIL_W = 68;
 const RAIL_W_OPEN = 224;
@@ -50,6 +53,10 @@ export default function AppRail() {
      está no TopBar, não aqui. */
   const activeId =
     state.activePage === 'pageProjectWorkspace' ? null : state.activePage;
+
+  const navItems = state.auth?.isPlatformAdmin
+    ? [...NAV_ITEMS, ADMIN_ITEM]
+    : NAV_ITEMS;
 
   const badgeFor = (key) => (key === 'anomalies' ? openAnomalies : 0);
 
@@ -128,7 +135,7 @@ export default function AppRail() {
         {/* ── Navegação global ─────────────────────────────────── */}
         <nav className="flex flex-col gap-0.5 px-3 pt-2">
           <RailSectionLabel open={open}>Sistema</RailSectionLabel>
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeId === item.id;
             const badge = badgeFor(item.badge);

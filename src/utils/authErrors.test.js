@@ -35,8 +35,12 @@ describe('authErrorMessage', () => {
   it('traduz e-mail inválido', () => {
     expect(authErrorMessage({ code: 'email_address_invalid', status: 400 })).toBe('E-mail inválido.');
   });
+  it('traduz user_banned como acesso revogado', () => {
+    expect(authErrorMessage({ code: 'user_banned', status: 400, message: 'User is banned' }))
+      .toBe('Seu acesso ao Projeta foi revogado. Fale com o administrador.');
+  });
   it('traduz cadastro desativado', () => {
-    expect(authErrorMessage({ code: 'signup_disabled', status: 422 })).toBe('Novos cadastros estão desativados no momento.');
+    expect(authErrorMessage({ code: 'signup_disabled', status: 422 })).toBe('O acesso ao Projeta é feito por convite.');
   });
   it('usa mensagem genérica no restante', () => {
     expect(authErrorMessage({ message: 'Something English' })).toBe('Não foi possível concluir. Tente de novo.');
@@ -55,3 +59,11 @@ describe('isTransientAuthError', () => {
     expect(isTransientAuthError(null)).toBe(false);
   });
 });
+
+describe('acesso por convite', () => {
+  it('signup_disabled e invite_required viram a mensagem de convite', () => {
+    const msg = 'O acesso ao Projeta é feito por convite.'
+    expect(authErrorMessage({ code: 'signup_disabled' })).toBe(msg)
+    expect(authErrorMessage({ status: 500, message: 'Database error saving new user: invite_required' })).toBe(msg)
+  })
+})

@@ -1,16 +1,44 @@
 import React, { createContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { amIPlatformAdmin } from '../features/admin/adminRepository';
 import {
   ensureWorkspace, loadWorkspaceData, saveProject as dbSaveProject,
   deleteProject as dbDeleteProject, saveTask as dbSaveTask,
   deleteTask as dbDeleteTask, saveAnomaly as dbSaveAnomaly,
   deleteAnomaly as dbDeleteAnomaly, updateWorkspace as dbUpdateWorkspace,
-  verifyWorkspaceData, friendlyDbError, toFriendlyError,
+  verifyWorkspaceData, friendlyDbError, toFriendlyError, isAccessRevoked,
+  ACCESS_REVOKED_MESSAGE,
 } from '../utils/supabaseRepository';
 
 const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
 
 /* ── initial state ──────────────────────────────────────────── */
+/* O link do convite chega com type=invite no hash; o supabase-js limpa o hash ao processá-lo,
+   então a leitura é síncrona, na carga do módulo e na montagem do provider. */
+export function isInviteHash(hash) {
+  return new URLSearchParams(String(hash || '').replace(/^#/, '')).get('type') === 'invite';
+}
+const BOOT_INVITE = typeof window !== 'undefined' && isInviteHash(window.location.hash);
+
+export const INVITE_EXPIRED_MESSAGE = 'O link do convite expirou. Peça um novo convite ao administrador ou use "Esqueci minha senha".';
+
+/* Link de convite/recuperação recusado pelo Auth volta com error_code no hash
+   (ex.: #error=access_denied&error_code=otp_expired). Vira aviso na tela de login. */
+export function authHashNotice(hash) {
+  const code = new URLSearchParams(String(hash || '').replace(/^#/, '')).get('error_code');
+  if (code === 'otp_expired') return INVITE_EXPIRED_MESSAGE;
+  if (code === 'user_banned') return ACCESS_REVOKED_MESSAGE;
+  return null;
+}
+
+/** Lê o erro do hash e o tira da URL, para não reaparecer num recarregamento. */
+export function readBootAuthNotice(win) {
+  const notice = authHashNotice(win?.location?.hash);
+  if (notice) win.history.replaceState(win.history.state, '', win.location.pathname + win.location.search);
+  return notice;
+}
+const BOOT_AUTH_NOTICE = typeof window !== 'undefined' ? readBootAuthNotice(window) : null;
+
 const initialState = {
   projects: [],
   tasks: [],
@@ -21,6 +49,9 @@ const initialState = {
     workspace: null,
     error: null,
     recovery: false,
+    mustSetPassword: false,
+    errorCode: null,
+    isPlatformAdmin: false,
   },
   activeProjectId: null,
   activeProjectTab: 'overview',   // 'overview' | 'gantt' | 'kanban' | 'scurve' | 'anomalies'
@@ -37,6 +68,9 @@ const initialState = {
   /* Shell: o rail fica em 64px e sobrepõe ao passar o mouse. Fixá-lo
      reserva a largura de verdade no layout. */
   railPinned: false,
+
+  /* Aviso do link de acesso (hash de erro na abertura), mostrado na tela de login. */
+  authNotice: null,
 
   /* Histórico de edição de tarefas. Não é persistido: desfazer vale
      para a sessão, como em qualquer editor. */
@@ -60,10 +94,12 @@ export const ACTIONS = {
   SET_ANOMALIES: 'SET_ANOMALIES',
   AUTH_READY: 'AUTH_READY',
   AUTH_SET_RECOVERY: 'AUTH_SET_RECOVERY',
+  AUTH_SET_MUST_SET_PASSWORD: 'AUTH_SET_MUST_SET_PASSWORD',
   AUTH_ERROR: 'AUTH_ERROR',
   AUTH_RETRY: 'AUTH_RETRY',
   AUTH_SIGNED_OUT: 'AUTH_SIGNED_OUT',
   AUTH_WORKSPACE_UPDATED: 'AUTH_WORKSPACE_UPDATED',
+  AUTH_SET_ADMIN: 'AUTH_SET_ADMIN',
   ADD_ANOMALY: 'ADD_ANOMALY',
   UPDATE_ANOMALY: 'UPDATE_ANOMALY',
   REMOVE_ANOMALY: 'REMOVE_ANOMALY',
@@ -141,17 +177,20 @@ export function reducer(state, action) {
     case ACTIONS.AUTH_READY:
       return {
         ...state,
-        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null, recovery: state.auth.recovery },
+        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null, recovery: state.auth.recovery, mustSetPassword: state.auth.mustSetPassword, errorCode: null, isPlatformAdmin: Boolean(state.auth.isPlatformAdmin) },
         projects: action.payload.data.projects,
         tasks: action.payload.data.tasks,
         anomalies: action.payload.data.anomalies,
+        authNotice: null,
       };
     case ACTIONS.AUTH_SET_RECOVERY:
       return { ...state, auth: { ...state.auth, recovery: Boolean(action.payload) } };
+    case ACTIONS.AUTH_SET_MUST_SET_PASSWORD:
+      return { ...state, auth: { ...state.auth, mustSetPassword: Boolean(action.payload) } };
     case ACTIONS.AUTH_ERROR:
       return {
         ...state,
-        auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false },
+        auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false, mustSetPassword: action.code === 'access_revoked' ? false : state.auth.mustSetPassword, errorCode: action.code || null },
         projects: [], tasks: [], anomalies: [],
       };
     case ACTIONS.AUTH_RETRY:
@@ -159,10 +198,12 @@ export function reducer(state, action) {
     case ACTIONS.AUTH_SIGNED_OUT:
       return {
         ...state,
-        auth: { status: 'ready', user: null, workspace: null, error: null, recovery: false },
+        auth: { status: 'ready', user: null, workspace: null, error: null, recovery: false, mustSetPassword: false, errorCode: null },
         projects: [], tasks: [], anomalies: [], activeProjectId: null,
         activePage: 'pagePortfolio',
       };
+    case ACTIONS.AUTH_SET_ADMIN:
+      return { ...state, auth: { ...state.auth, isPlatformAdmin: Boolean(action.payload) } };
     case ACTIONS.AUTH_WORKSPACE_UPDATED:
       return { ...state, auth: { ...state.auth, workspace: action.payload } };
     case ACTIONS.ADD_ANOMALY:
@@ -319,7 +360,13 @@ function sameCollection(a, b) {
 }
 
 export function AppProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, initialState, (base) => {
+    const authNotice = BOOT_AUTH_NOTICE || (typeof window !== 'undefined' ? readBootAuthNotice(window) : null);
+    const withNotice = authNotice ? { ...base, authNotice } : base;
+    return BOOT_INVITE || (typeof window !== 'undefined' && isInviteHash(window.location.hash))
+      ? { ...withNotice, auth: { ...withNotice.auth, mustSetPassword: true } }
+      : withNotice;
+  });
 
   /* Espelhos do estado para os callbacks estáveis. Sem eles, um
      useCallback com deps [] leria sempre o primeiro render. */
@@ -356,7 +403,7 @@ export function AppProvider({ children }) {
         workspaceRef.current = workspace;
         dispatch({ type: ACTIONS.AUTH_READY, payload: { user, workspace, data } });
       } catch (error) {
-        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
+        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error), code: isAccessRevoked(error) ? 'access_revoked' : null });
       } finally {
         if (loadingUserId === user.id) loadingUserId = null;
       }
@@ -375,6 +422,17 @@ export function AppProvider({ children }) {
     };
   }, []);
 
+  /* Administrador da plataforma: consulta após o login; falha = não é admin. */
+  const authUserId = state.auth.user?.id;
+  useEffect(() => {
+    if (!authUserId) return undefined;
+    let cancelled = false;
+    amIPlatformAdmin()
+      .catch(() => false)
+      .then((isAdmin) => { if (!cancelled) dispatch({ type: ACTIONS.AUTH_SET_ADMIN, payload: isAdmin }); });
+    return () => { cancelled = true; };
+  }, [authUserId]);
+
   /* Tela de erro do carregamento: refaz a carga para o usuário da sessão atual. */
   const retryLoad = useCallback(async () => {
     if (!supabase || !loadUserRef.current) return;
@@ -386,7 +444,7 @@ export function AppProvider({ children }) {
       session = data?.session;
     } catch (error) {
       // Sem conseguir ler a sessão (ex.: offline), continua no erro em vez de cair na página pública.
-      dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
+      dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error), code: isAccessRevoked(error) ? 'access_revoked' : null });
       return;
     }
     await loadUserRef.current?.(session?.user || null);
@@ -675,18 +733,6 @@ export function AppProvider({ children }) {
     return supabase.auth.signInWithPassword({ email, password });
   }, []);
 
-  const signUp = useCallback((email, password, fullName) => {
-    if (!supabase) return Promise.reject(new Error('Supabase não está configurado.'));
-    return supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: authRedirectUrl,
-      },
-    });
-  }, []);
-
   const requestPasswordReset = useCallback((email) => {
     if (!supabase) return Promise.reject(new Error('Supabase não está configurado.'));
     return supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl });
@@ -695,7 +741,10 @@ export function AppProvider({ children }) {
   const updatePassword = useCallback(async (password) => {
     if (!supabase) throw new Error('Supabase não está configurado.');
     const result = await supabase.auth.updateUser({ password });
-    if (!result?.error) dispatch({ type: ACTIONS.AUTH_SET_RECOVERY, payload: false });
+    if (!result?.error) {
+      dispatch({ type: ACTIONS.AUTH_SET_RECOVERY, payload: false });
+      dispatch({ type: ACTIONS.AUTH_SET_MUST_SET_PASSWORD, payload: false });
+    }
     return result;
   }, []);
 
@@ -737,7 +786,6 @@ export function AppProvider({ children }) {
     confirmLocalSave,
     reportLocalSaveError,
     signIn,
-    signUp,
     requestPasswordReset,
     updatePassword,
     signOut,

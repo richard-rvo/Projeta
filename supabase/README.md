@@ -138,3 +138,52 @@ Aplicar em produção e em staging:
 - "Leaked password protection" ligado (requer plano Pro; senão, fica anotado para a Fase 6).
 - Site URL e Redirect URLs só com `https://projeta.richardvieira.com.br` e o domínio de preview da Vercel.
 - Rate limits de e-mail revisados.
+- Auth → Email → "Email OTP Expiration": **86400** segundos (o máximo). É a validade
+  do link do e-mail de convite; depois disso o link chega com
+  `#error_code=otp_expired` e o app mostra "O link do convite expirou...". O convite
+  em si vale **14 dias** no Projeta (`platform_invites.expires_at`, renovado a cada
+  envio): com o link expirado, o admin usa "Reenviar" dentro desse prazo, ou a pessoa
+  usa "Esqueci minha senha" se já tiver cadastro.
+
+## Edge Function `admin-users`
+
+Ações privilegiadas do administrador (service role, nunca no navegador): enviar,
+reenviar e revogar convites; revogar e restaurar usuários. Código em
+`supabase/functions/admin-users/` (`handler.js` testável no Vitest; `index.ts`
+monta os clientes e chama `Deno.serve`).
+
+- Secret obrigatório: `SITE_URL` (URL do app, usada em `redirectTo` do convite e
+  no CORS), além dos `SUPABASE_URL`, `SUPABASE_ANON_KEY` e
+  `SUPABASE_SERVICE_ROLE_KEY` que o Supabase injeta. Cadastro:
+  `npx supabase secrets set SITE_URL=https://... --project-ref <ref>`.
+- Deploy: `npx supabase functions deploy admin-users --project-ref <ref> --use-api`
+- `POST /functions/v1/admin-users` com `Authorization: Bearer <jwt do admin>` e corpo
+  `{ action, ... }`: `invite {email, note?}`, `resend {inviteId}`,
+  `revoke_invite {inviteId}`, `revoke_user {userId}`, `restore_user {userId}`.
+- Resposta: `{ ok: true, data }` ou `{ ok: false, error: { code, message } }`.
+- Contrato de `invite`: 409 `user_exists` quando a conta está `active` ("Este e-mail
+  já tem acesso ativo ao Projeta."). Conta `invited` com convite pendente válido vira
+  reenvio; conta `invited` sem convite utilizável ganha um convite NOVO (o pendente
+  antigo é revogado). Conta `revoked`:
+  - já concluiu o primeiro acesso (algum convite ligado com `accepted_at`): 409
+    `user_exists` ("Esta pessoa já tinha acesso. Use \"Restaurar\" na lista de
+    usuários."), nada é criado;
+  - nunca concluiu: a conta é desbanida ANTES do envio e recebe um convite NOVO. É
+    seguro: `user_access` continua `revoked` até o primeiro login aceitar o convite,
+    e só convite criado depois de `revoked_at` reativa.
+  Se o Auth responder "já registrado" para uma conta conhecida (cadastro feito, mas
+  primeiro acesso não concluído), o convite fica pendente e a resposta é
+  `data: { delivered: false, reason: 'existing_account', message }`: a pessoa usa
+  "Esqueci minha senha" e o primeiro login aceita o convite.
+- `revoke_user` bane, marca `user_access` como `revoked` e revoga os convites
+  pendentes da pessoa (por `accepted_user_id` ou e-mail), para não ficarem como
+  "Pendente" reenviáveis.
+- `restore_user` só vale para quem já concluiu o primeiro acesso (algum convite
+  ligado com `accepted_at`, a mesma regra do banco; não usa `last_sign_in_at`).
+  Sem isso, 409 `first_access_pending`: é preciso enviar um novo convite.
+- Quem usa o quê: **Restaurar** para quem já entrou no Projeta e foi revogado;
+  **novo convite** para quem foi revogado antes de concluir o primeiro acesso (ou
+  cujo convite expirou/foi revogado).
+  Contas anteriores ao modelo por convite (backfill de `user_access`, sem convite
+  ligado) também caem em **novo convite**: a resposta será `delivered: false` e a
+  pessoa entra por "Esqueci minha senha"; o primeiro login aceita o convite novo.
