@@ -155,3 +155,12 @@ monta os clientes e chama `Deno.serve`).
   `{ action, ... }`: `invite {email, note?}`, `resend {inviteId}`,
   `revoke_invite {inviteId}`, `revoke_user {userId}`, `restore_user {userId}`.
 - Resposta: `{ ok: true, data }` ou `{ ok: false, error: { code, message } }`.
+- Contrato de `invite`: 409 `user_exists` só quando a conta está `active`. Conta
+  `invited` com convite pendente válido vira reenvio; conta `revoked` (ou `invited`
+  sem convite utilizável) ganha um convite NOVO (o pendente antigo é revogado), pois
+  só convite criado depois de `revoked_at` reativa no primeiro login. Se o Auth
+  responder "já registrado", a conta é desbanida e a resposta é
+  `data: { delivered: false, reason: 'existing_account', message }` (a pessoa deve
+  usar "Esqueci minha senha"). `restore_user` devolve 409 `first_access_pending`
+  para quem nunca concluiu o primeiro acesso (`status` `invited` ou sem
+  `last_sign_in_at`): é preciso enviar um novo convite.

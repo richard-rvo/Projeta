@@ -55,7 +55,7 @@ function setup({ rejectExpired = false, adminRpcError = false, failBan = false, 
     { user_id: ADMIN, email: 'admin@x.com', is_admin: true, status: 'active', last_sign_in_at: 'x' },
     { user_id: OTHER_ADMIN, email: 'admin2@x.com', is_admin: true, status: 'active', last_sign_in_at: 'x' },
     { user_id: USER, email: 'ana@x.com', is_admin: false, status: 'active', last_sign_in_at: 'x' },
-    { user_id: NEVER, email: 'nunca@x.com', is_admin: false, status: 'active', last_sign_in_at: null },
+    { user_id: NEVER, email: 'nunca@x.com', is_admin: false, status: 'invited', last_sign_in_at: null },
   ];
   const adminClient = {
     from: (n) => { const b = db.from(n); if (failFrom && failFrom.table === n) { const orig = b[failFrom.op]; b[failFrom.op] = (...a) => { const r = orig(...a); const th = r.then; r.then = (res, rej) => Promise.resolve({ data: null, error: { message: 'db' } }).then(res, rej); r.single = async () => ({ data: null, error: { message: 'db' } }); r.maybeSingle = r.single; void th; return r; }; } return b; },
@@ -183,20 +183,50 @@ describe('admin-users: invite', () => {
     expect(invites).toHaveLength(0);
     expect(t.platform_invites).toHaveLength(0);
   });
-  it('usuário revogado -> 409 user_exists', async () => {
-    const users = [{ user_id: USER, email: 'ana@x.com', is_admin: false, status: 'revoked', last_sign_in_at: null }];
-    const { call } = setup({ users });
-    expect((await call({ action: 'invite', email: 'ana@x.com' })).status).toBe(409);
-  });
-  it('conta que nunca entrou: reenvia o convite', async () => {
-    const { call, invites } = setup();
-    const r = await call({ action: 'invite', email: 'nunca@x.com' });
-    expect(r.status).toBe(200);
+  it('conta convidada com convite pendente utilizável: age como reenvio (mesma linha)', async () => {
+    const future = new Date(Date.now() + 5 * 86400e3).toISOString();
+    const pend = { id: '22222222-2222-4222-8222-222222222222', email: 'nunca@x.com', status: 'pending', sent_count: 1, note: '', expires_at: future };
+    const { call, t, invites } = setup({ tables: { platform_invites: [pend] } });
+    expect((await call({ action: 'invite', email: 'nunca@x.com' })).status).toBe(200);
+    expect(t.platform_invites).toHaveLength(1);
+    expect(t.platform_invites[0].sent_count).toBe(2);
     expect(invites).toHaveLength(1);
   });
-  it('provedor responde "já registrado" -> 409 user_exists e não deixa convite órfão', async () => {
+  it('conta convidada sem convite utilizável: cria convite novo e revoga o pendente expirado', async () => {
+    const old = { id: '22222222-2222-4222-8222-222222222222', email: 'nunca@x.com', status: 'pending', sent_count: 1, note: '', expires_at: '2020-01-01T00:00:00Z' };
+    const { call, t, invites } = setup({ tables: { platform_invites: [old] } });
+    expect((await call({ action: 'invite', email: 'nunca@x.com' })).status).toBe(200);
+    expect(t.platform_invites).toHaveLength(2);
+    expect(t.platform_invites[0].status).toBe('revoked');
+    expect(t.platform_invites[1]).toMatchObject({ status: 'pending', sent_count: 1 });
+    expect(invites).toHaveLength(1);
+  });
+  it('conta revogada: convite NOVO, nunca reaproveita revogado/aceito', async () => {
+    const users = [{ user_id: USER, email: 'ana@x.com', is_admin: false, status: 'revoked', last_sign_in_at: 'x' }];
+    const acc = { id: '22222222-2222-4222-8222-222222222222', email: 'ana@x.com', status: 'accepted', sent_count: 1, note: '', expires_at: '2020-01-01T00:00:00Z' };
+    const { call, t, invites } = setup({ users, tables: { platform_invites: [acc] } });
+    const r = await call({ action: 'invite', email: 'ana@x.com' });
+    expect(r.status).toBe(200);
+    expect(t.platform_invites[0].status).toBe('accepted');
+    expect(t.platform_invites).toHaveLength(2);
+    expect(t.platform_invites[1].status).toBe('pending');
+    expect(invites).toHaveLength(1);
+  });
+  it('conta revogada e provedor diz "já registrado": desbane e responde delivered false', async () => {
+    const users = [{ user_id: USER, email: 'ana@x.com', is_admin: false, status: 'revoked', last_sign_in_at: 'x' }];
+    const { call, t, bans } = setup({ users, inviteError: { code: 'email_exists', message: 'already been registered' } });
+    const r = await call({ action: 'invite', email: 'ana@x.com' });
+    expect(r.status).toBe(200);
+    const d = (await json(r)).data;
+    expect(d).toMatchObject({ delivered: false, reason: 'existing_account' });
+    expect(d.message).toBe('Convite registrado. Como a pessoa já tem conta, peça para usar "Esqueci minha senha".');
+    expect(bans).toEqual([{ id: USER, attrs: { ban_duration: 'none' } }]);
+    expect(t.platform_invites).toHaveLength(1);
+    expect(t.platform_invites[0].status).toBe('pending');
+  });
+  it('provedor responde "já registrado" sem conta conhecida -> 409 user_exists e não deixa convite órfão', async () => {
     const { call, t } = setup({ inviteError: { status: 422, code: 'email_exists', message: 'A user with this email address has already been registered' } });
-    const r = await call({ action: 'invite', email: 'nunca@x.com' });
+    const r = await call({ action: 'invite', email: 'fantasma@x.com' });
     expect(r.status).toBe(409);
     expect((await json(r)).error.code).toBe('user_exists');
     expect(t.platform_invites).toHaveLength(0);
@@ -272,6 +302,14 @@ describe('admin-users: revoke_user / restore_user', () => {
   it('usuário desconhecido -> 404', async () => {
     const { call } = setup();
     expect((await call({ action: 'revoke_user', userId: '00000000-0000-4000-8000-0000000000ff' })).status).toBe(404);
+  });
+  it('restore de quem não concluiu o primeiro acesso -> 409', async () => {
+    const { call, bans } = setup();
+    const r = await call({ action: 'restore_user', userId: NEVER });
+    expect(r.status).toBe(409);
+    const e = (await json(r)).error;
+    expect(e.message).toBe('Esta pessoa ainda não concluiu o primeiro acesso. Envie um novo convite.');
+    expect(bans).toHaveLength(0);
   });
   it('restaura: active + ban_duration none', async () => {
     const { call, t, bans } = setup({ tables: { user_access: [{ user_id: USER, status: 'revoked', revoked_at: 'x', revoked_by: ADMIN }] } });

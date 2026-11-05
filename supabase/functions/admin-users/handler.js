@@ -14,6 +14,8 @@ const MSG = {
   badNote: 'A observação deve ter no máximo 500 caracteres.',
   badId: 'Identificador inválido.',
   userExists: 'Este e-mail já tem uma conta. Use "Restaurar" se o acesso foi revogado.',
+  existingAccount: 'Convite registrado. Como a pessoa já tem conta, peça para usar "Esqueci minha senha".',
+  firstAccessPending: 'Esta pessoa ainda não concluiu o primeiro acesso. Envie um novo convite.',
   sendFailed: 'Não foi possível enviar o e-mail do convite. Tente novamente em instantes.',
   inviteNotFound: 'Convite não encontrado.',
   inviteAccepted: 'Este convite já foi aceito. Para bloquear o acesso, revogue o usuário.',
@@ -107,12 +109,10 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
       throw new HttpError(400, 'invalid_note', MSG.badNote);
     }
 
-    // Conta existente: com login já feito -> 409; nunca entrou -> tenta reenviar.
+    // Contrato do banco: status 'active' | 'invited' | 'revoked'. Só 'active' bloqueia o convite.
     const users = await listUsers(userClient);
     const existing = users.find((u) => (u.email ?? '').toLowerCase() === normalized);
-    if (existing && (existing.last_sign_in_at || existing.status === 'revoked')) {
-      throw new HttpError(409, 'user_exists', MSG.userExists);
-    }
+    if (existing && existing.status === 'active') throw new HttpError(409, 'user_exists', MSG.userExists);
 
     const { data: pending, error: selErr } = await adminClient
       .from('platform_invites')
@@ -122,9 +122,21 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
       .maybeSingle();
     if (selErr) throw new HttpError(500, 'internal', MSG.internal);
 
+    const usable = pending && new Date(pending.expires_at) > new Date();
+    // Conta existente revogada, ou convidada sem convite utilizável: convite NOVO (a reativação
+    // só vale para convite criado depois de revoked_at; reenviar nunca desfaz revogação).
+    const needsNew = existing && (existing.status === 'revoked' || !usable);
+
     let invite = pending;
     let created = false;
-    if (!invite) {
+    if (!invite || needsNew) {
+      if (pending) {
+        const { error: revErr } = await adminClient
+          .from('platform_invites')
+          .update({ status: 'revoked', revoked_at: new Date().toISOString() })
+          .eq('id', pending.id);
+        if (revErr) throw new HttpError(500, 'internal', MSG.internal);
+      }
       const { data, error } = await adminClient
         .from('platform_invites')
         .insert({ email: normalized, note: note ?? '', invited_by: callerId })
@@ -141,9 +153,15 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
     try {
       return await sendInvite(invite);
     } catch (e) {
-      // Convite recém-criado para e-mail que já tem conta: não deixar pendente órfão.
-      if (created && e instanceof HttpError && e.code === 'user_exists') {
-        await adminClient.from('platform_invites').delete().eq('id', invite.id);
+      if (e instanceof HttpError && e.code === 'user_exists') {
+        if (existing) {
+          // Conta já existe no Auth: o convite fica registrado; destrava o login e orienta a pessoa.
+          const { error: unbanErr } = await adminClient.auth.admin.updateUserById(existing.user_id, { ban_duration: 'none' });
+          if (unbanErr) throw new HttpError(502, 'unban_failed', MSG.unbanFailed);
+          return { delivered: false, reason: 'existing_account', message: MSG.existingAccount };
+        }
+        // Convite recém-criado para e-mail sem conta conhecida: não deixar pendente órfão.
+        if (created) await adminClient.from('platform_invites').delete().eq('id', invite.id);
       }
       throw e;
     }
@@ -213,6 +231,10 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
     if (typeof userId !== 'string' || !UUID_RE.test(userId)) throw new HttpError(400, 'invalid_id', MSG.badId);
     const target = (await listUsers(userClient)).find((u) => u.user_id === userId);
     if (!target) throw new HttpError(404, 'user_not_found', MSG.userNotFound);
+    // Nunca concluiu o primeiro acesso: restaurar não faz sentido, só um convite novo.
+    if (target.status === 'invited' || !target.last_sign_in_at) {
+      throw new HttpError(409, 'first_access_pending', MSG.firstAccessPending);
+    }
     // Desbanir primeiro: se falhar, o usuário continua revogado (lado seguro).
     const { error: banErr } = await adminClient.auth.admin.updateUserById(userId, { ban_duration: 'none' });
     if (banErr) throw new HttpError(502, 'unban_failed', MSG.unbanFailed);
