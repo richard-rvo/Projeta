@@ -4,7 +4,7 @@ import { formatDateLong, today } from '../../utils/schedule'
 import MinuteEditor from './editor/MinuteEditor'
 import { extractActions } from './minuteDoc'
 
-const STATUS_LABEL = { aberta: 'Aberta', 'concluída': 'Concluída' }
+const STATUS_LABEL = { aberta: 'Aberta', 'concluída': 'Concluída', cancelada: 'Cancelada' }
 const TH = 'border-b border-[#bbb] px-2 py-1 text-left text-[9px] font-bold uppercase tracking-wide text-[#666]'
 const TD = 'border-b border-[#ddd] px-2 py-1.5 align-top text-[11px]'
 

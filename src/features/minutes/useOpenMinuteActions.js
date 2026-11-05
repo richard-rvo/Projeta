@@ -17,16 +17,20 @@ export function useOpenMinuteActions(projectId) {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(() => new Set())
   const inFlight = useRef(new Set())
+  const request = useRef(0)
   const stateRef = useRef(state)
   stateRef.current = state
 
   const refresh = useCallback(async () => {
+    // Só a resposta do pedido mais recente vale: trocar de projeto não pode trazer a lista do anterior.
+    const current = ++request.current
     try {
-      setActions(await listProjectActions(projectId, { status: 'aberta' }))
+      const list = await listProjectActions(projectId, { status: 'aberta' })
+      if (current === request.current) setActions(list)
     } catch (e) {
-      showToast(friendlyDbError(e), 'error')
+      if (current === request.current) showToast(friendlyDbError(e), 'error')
     } finally {
-      setLoading(false)
+      if (current === request.current) setLoading(false)
     }
   }, [projectId, showToast])
 
@@ -42,7 +46,8 @@ export function useOpenMinuteActions(projectId) {
       setBusy((prev) => new Set(prev).add(action.id))
       try {
         const minute = await loadMinute(action.minuteId)
-        const ids = new Set(stateRef.current.tasks.filter((t) => t.projectId === projectId).map((t) => t.id))
+        // Vínculos válidos são as tarefas do projeto da ata, não do projeto aberto agora.
+        const ids = new Set(stateRef.current.tasks.filter((t) => t.projectId === minute.projectId).map((t) => t.id))
         const content = updateActionInDoc(clearMissingTaskLinks(minute.content, ids), action.id, { status: 'concluída' })
         await saveMinute({ ...minute, content }, stateRef.current.auth?.workspace?.id)
         setActions((prev) => prev.filter((a) => a.id !== action.id))
@@ -57,7 +62,7 @@ export function useOpenMinuteActions(projectId) {
         })
       }
     },
-    [projectId, showToast],
+    [showToast],
   )
 
   const visible = [...actions].sort(byDueDate).slice(0, OVERVIEW_ACTION_LIMIT)
