@@ -7,6 +7,7 @@ import {
   deleteAnomaly as dbDeleteAnomaly, updateWorkspace as dbUpdateWorkspace,
   verifyWorkspaceData, friendlyDbError, toFriendlyError,
 } from '../utils/supabaseRepository';
+import { flushAllMinuteSaves } from '../features/minutes/pendingSaves';
 
 const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
 
@@ -698,7 +699,18 @@ export function AppProvider({ children }) {
     return result;
   }, []);
 
-  const signOut = useCallback(() => supabase?.auth.signOut(), []);
+  /* Atas com texto não gravado: grava antes de encerrar a sessão (depois, o banco
+     recusaria). Se não der, fica na conta em vez de perder o texto em silêncio. */
+  const signOut = useCallback(async () => {
+    if (!(await flushAllMinuteSaves())) {
+      dispatch({
+        type: ACTIONS.SET_TOAST,
+        payload: { message: 'Há alterações de atas que não foram salvas. Verifique a conexão antes de sair.', type: 'error' },
+      });
+      return undefined;
+    }
+    return supabase?.auth.signOut();
+  }, []);
 
   const value = {
     state,

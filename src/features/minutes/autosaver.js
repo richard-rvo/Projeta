@@ -78,5 +78,9 @@ export function createAutosaver({ save, delay = 1200, onStatus = () => {} }) {
       disposed = true
       clearTimer()
     },
+    // Há valor agendado, em gravação ou que falhou e aguarda nova tentativa.
+    hasUnsaved() {
+      return hasPending || Boolean(running)
+    },
   }
 }

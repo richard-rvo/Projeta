@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { act, useContext } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AppContext, AppProvider } from './AppContext'
+import { flushAllMinuteSaves } from '../features/minutes/pendingSaves'
 
 const { auth, repo } = vi.hoisted(() => ({
   auth: { getSession: vi.fn(), onAuthStateChange: vi.fn(), signOut: vi.fn() },
@@ -10,6 +11,7 @@ const { auth, repo } = vi.hoisted(() => ({
 }))
 vi.mock('../lib/supabase', () => ({ isSupabaseConfigured: true, supabase: { auth } }))
 vi.mock('../utils/supabaseRepository', async (importOriginal) => ({ ...(await importOriginal()), ...repo }))
+vi.mock('../features/minutes/pendingSaves', () => ({ flushAllMinuteSaves: vi.fn() }))
 
 beforeAll(() => { globalThis.IS_REACT_ACT_ENVIRONMENT = true })
 
@@ -30,6 +32,7 @@ beforeEach(() => {
   auth.signOut.mockResolvedValue({ error: null })
   repo.ensureWorkspace.mockResolvedValue({ id: 'w1' })
   repo.loadWorkspaceData.mockResolvedValue(EMPTY)
+  flushAllMinuteSaves.mockResolvedValue(true)
 })
 
 afterEach(async () => {
@@ -80,5 +83,26 @@ describe('AppProvider: falha no primeiro carregamento', () => {
     auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: { name: 'AuthRetryableFetchError', status: 0, message: 'Failed to fetch' } })
     await run(() => ctx.retryLoad())
     expect(ctx.state.auth).toMatchObject({ status: 'error', error: 'Sem conexão. Verifique a internet e tente de novo.' })
+  })
+})
+
+describe('AppProvider: sair da conta', () => {
+  it('grava as atas pendentes antes de encerrar a sessão', async () => {
+    await mount()
+    await run(() => ctx.signOut())
+    expect(flushAllMinuteSaves).toHaveBeenCalledTimes(1)
+    expect(auth.signOut).toHaveBeenCalledTimes(1)
+    expect(flushAllMinuteSaves.mock.invocationCallOrder[0]).toBeLessThan(auth.signOut.mock.invocationCallOrder[0])
+  })
+
+  it('não sai quando alguma ata não pôde ser gravada e avisa', async () => {
+    flushAllMinuteSaves.mockResolvedValue(false)
+    await mount()
+    await run(() => ctx.signOut())
+    expect(auth.signOut).not.toHaveBeenCalled()
+    expect(ctx.state.toast).toEqual({
+      message: 'Há alterações de atas que não foram salvas. Verifique a conexão antes de sair.',
+      type: 'error',
+    })
   })
 })
