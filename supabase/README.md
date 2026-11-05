@@ -18,9 +18,10 @@ que precisem da Admin Auth API devem ser feitos em uma Edge Function.
   primeiro acesso. O cliente não insere em `workspaces`; só pode editar `name` e
   `timezone` (grant por coluna). `plan` (`free` ou `pro`) e `is_personal` não
   são graváveis pelo cliente.
-- **Membros do workspace.** `workspace_members` e `workspace_invites` não
-  aceitam escrita do cliente. O vínculo `owner` nasce por trigger ao criar o
-  workspace.
+- **Membros do workspace.** `workspace_members` não aceita escrita do cliente;
+  o vínculo `owner` nasce por trigger ao criar o workspace. `workspace_invites`
+  pode ser lido e gravado pelo dono do workspace (política
+  `workspace_invites_owner_manage`), mas nenhuma tela usa convites ainda.
 - **Papel por projeto.** O acesso a dados é decidido por `project_members`, com
   os papéis `owner > editor > viewer`. O dono entra por trigger
   (`on_project_created`) ao criar o projeto, com `projects.owner_id` (padrão
@@ -39,7 +40,7 @@ que precisem da Admin Auth API devem ser feitos em uma Edge Function.
 | `profiles` | o próprio usuário | o próprio usuário |
 | `workspaces` | membros do workspace | dono, só `name` e `timezone`; criação só pela RPC |
 | `workspace_members` | membros do workspace | nenhuma |
-| `workspace_invites` | dono do workspace | nenhuma (fluxo ainda não exposto) |
+| `workspace_invites` | dono do workspace | dono do workspace (`workspace_invites_owner_manage`); nenhuma tela usa ainda |
 | `project_members` | o próprio vínculo; dono do projeto vê todos | nenhuma (só código `SECURITY DEFINER`) |
 | `projects` | `viewer`+ (ou `owner_id`) | criar: membro do workspace como `owner_id`; editar: `editor`+; apagar: dono do projeto |
 | `tasks` | `viewer`+ | `editor`+ |
@@ -85,15 +86,17 @@ npx supabase link --project-ref <ref-do-projeto>
 npx supabase db push
 ```
 
-Produção só recebe `db push` depois de uma verificação em staging (abaixo), de
-um backup recente e com o frontend pronto para publicar logo em seguida.
+Produção só recebe `db push` com um backup recente e com o frontend pronto para
+publicar logo em seguida.
 
-## Testes de RLS (staging)
+## Testes de RLS
 
-A suíte em `tests/rls/` roda contra um projeto Supabase **de staging**, nunca
-contra produção. Ela cria usuários e workspaces próprios, usa só o que ela
-mesma criou e limpa ao final. Cobre isolamento entre tenants, workspaces e
-perfis, papéis por projeto, restrições e limites de plano e as atas.
+A suíte em `tests/rls/` roda contra o projeto Supabase indicado por
+`RLS_CONFIRM_PROJECT_REF`. **Hoje esse alvo é o próprio projeto Projeta em
+produção**, com autorização do dono. Por isso a suíte cria usuários e
+workspaces próprios, usa só o que ela mesma criou e limpa ao final. Cobre
+isolamento entre tenants, workspaces e perfis, papéis por projeto, restrições e
+limites de plano e as atas.
 
 Crie `.env.test.local` (fora do git) com estas chaves; os valores nunca entram
 no repositório nem em logs:
@@ -108,8 +111,8 @@ no repositório nem em logs:
 vazia ou se a `RLS_SUPABASE_URL` não contiver esse ref.
 
 ```bash
-npm run db:push:staging   # aplica as migrações no staging (usa RLS_DB_URL)
-npm run test:rls          # roda tests/rls/** contra o staging
+npm run db:push:staging   # aplica as migrações no projeto alvo (usa RLS_DB_URL)
+npm run test:rls          # roda tests/rls/** contra o projeto alvo
 ```
 
 ## Configurar um usuário proprietário

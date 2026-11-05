@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import MinutePrintSheet, { MinutePrintPreview } from './MinutePrintSheet'
 import { formatDateLong } from '../../utils/schedule'
 import { extractActions } from './minuteDoc'
+import { ACTION_STATUSES } from './editor/actionItemNode'
 
 const editorProps = vi.fn()
 vi.mock('./editor/MinuteEditor', () => ({
@@ -59,6 +60,13 @@ describe('MinutePrintSheet', () => {
     ]))
     expect([...container.querySelectorAll('th')].map((h) => h.textContent))
       .toEqual(['Descrição', 'Responsável', 'Prazo', 'Status'])
+  })
+
+  it('todo status de ação tem rótulo em português (inclusive cancelada)', () => {
+    const all = { type: 'doc', content: ACTION_STATUSES.map((status, i) => action(`s${i}`, status, { status })) }
+    mount(<MinutePrintSheet minute={minute(all)} projectName="Obra X" />)
+    const cells = [...container.querySelectorAll('tbody tr')].map((r) => r.cells[3].textContent)
+    expect(cells).toEqual(['Aberta', 'Concluída', 'Cancelada'])
   })
 
   it('sem ações mostra a mensagem vazia', () => {

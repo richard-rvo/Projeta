@@ -18,6 +18,26 @@ describe('authErrorMessage', () => {
     expect(authErrorMessage({ status: 0 })).toBe(msg);
     expect(authErrorMessage({ name: 'AuthRetryableFetchError', status: 0 })).toBe(msg);
   });
+  it('traduz credenciais inválidas (código e mensagem antiga)', () => {
+    const msg = 'E-mail ou senha incorretos.';
+    expect(authErrorMessage({ code: 'invalid_credentials', status: 400 })).toBe(msg);
+    expect(authErrorMessage({ status: 400, message: 'Invalid login credentials' })).toBe(msg);
+  });
+  it('traduz e-mail não confirmado', () => {
+    expect(authErrorMessage({ code: 'email_not_confirmed', status: 400 }))
+      .toBe('Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.');
+  });
+  it('traduz conta já existente', () => {
+    const msg = 'Já existe uma conta com este e-mail.';
+    expect(authErrorMessage({ code: 'user_already_exists', status: 422 })).toBe(msg);
+    expect(authErrorMessage({ code: 'email_exists', status: 422 })).toBe(msg);
+  });
+  it('traduz e-mail inválido', () => {
+    expect(authErrorMessage({ code: 'email_address_invalid', status: 400 })).toBe('E-mail inválido.');
+  });
+  it('traduz cadastro desativado', () => {
+    expect(authErrorMessage({ code: 'signup_disabled', status: 422 })).toBe('Novos cadastros estão desativados no momento.');
+  });
   it('usa mensagem genérica no restante', () => {
     expect(authErrorMessage({ message: 'Something English' })).toBe('Não foi possível concluir. Tente de novo.');
     expect(authErrorMessage(null)).toBe('Não foi possível concluir. Tente de novo.');

@@ -6,6 +6,7 @@ import GanttView from '../views/gantt/GanttView';
 import PageKanban from '../pages/PageKanban';
 import PageSCurve from '../pages/PageSCurve';
 import PageProjectAnomalies from '../pages/PageProjectAnomalies';
+import LazyErrorBoundary from './LazyErrorBoundary';
 
 const PageMinutes = React.lazy(() => import('../features/minutes/PageMinutes'));
 
@@ -35,9 +36,11 @@ export default function ProjectWorkspace() {
       return <PageSCurve />;
     case 'minutes':
       return (
-        <Suspense fallback={null}>
-          <PageMinutes />
-        </Suspense>
+        <LazyErrorBoundary>
+          <Suspense fallback={null}>
+            <PageMinutes />
+          </Suspense>
+        </LazyErrorBoundary>
       );
     case 'anomalies':
       return <PageProjectAnomalies />;

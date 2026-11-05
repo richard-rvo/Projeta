@@ -1,6 +1,7 @@
 import { useLayoutEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { MINUTE_LIMITS } from './minutesRepository'
 
 const LABEL = 'text-micro font-medium text-text-3'
 
@@ -22,6 +23,7 @@ export default function MinuteHeader({ minute, onChange }) {
       <input
         id={id('title')}
         aria-label="Título da ata"
+        maxLength={MINUTE_LIMITS.title}
         value={minute.title}
         onChange={(e) => onChange({ title: e.target.value })}
         placeholder="Título da ata"
@@ -42,6 +44,7 @@ export default function MinuteHeader({ minute, onChange }) {
           <label htmlFor={id('location')} className={LABEL}>Local</label>
           <Input
             id={id('location')}
+            maxLength={MINUTE_LIMITS.location}
             value={minute.location || ''}
             onChange={(e) => onChange({ location: e.target.value })}
           />
@@ -52,6 +55,7 @@ export default function MinuteHeader({ minute, onChange }) {
             id={id('participants')}
             rows={1}
             className="min-h-8 resize-none overflow-hidden"
+            maxLength={MINUTE_LIMITS.participants}
             value={minute.participants || ''}
             onChange={(e) => onChange({ participants: e.target.value })}
           />

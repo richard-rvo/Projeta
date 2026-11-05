@@ -43,6 +43,22 @@ describe('minutesRepository', () => {
     expect(p_minute.content.content[1].attrs.id).toBe(p_actions[1].id)
   })
 
+  it('minuteToRpcArgs corta título, local e participantes nos limites do banco', () => {
+    const m = {
+      ...minute(EMPTY_DOC),
+      title: 't'.repeat(250), location: 'l'.repeat(201), participants: 'p'.repeat(2500),
+    }
+    const { p_minute } = minuteToRpcArgs(m, 'w1')
+    expect(p_minute.title).toBe('t'.repeat(200))
+    expect(p_minute.location).toBe('l'.repeat(200))
+    expect(p_minute.participants).toBe('p'.repeat(2000))
+  })
+
+  it('minuteToRpcArgs mantém textos dentro do limite', () => {
+    const { p_minute } = minuteToRpcArgs(minute(EMPTY_DOC), 'w1')
+    expect(p_minute).toMatchObject({ title: 'T', location: 'Sala', participants: 'A, B' })
+  })
+
   it('minuteToRpcArgs envia meeting_at null quando vazio', () => {
     const m = { ...minute(EMPTY_DOC), meetingAt: '' }
     expect(minuteToRpcArgs(m, 'w1').p_minute.meeting_at).toBeNull()

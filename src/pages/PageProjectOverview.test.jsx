@@ -97,6 +97,7 @@ describe('cartão Ações abertas', () => {
   })
 
   it('erro ao carregar mostra toast amigável', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
     listProjectActions.mockRejectedValue(new Error('x'))
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -107,7 +108,9 @@ describe('cartão Ações abertas', () => {
       setProjectTab: vi.fn(), openTaskInspector: vi.fn(), openMinuteFromOverview: vi.fn(), showToast,
     }
     await run(() => root.render(<AppContext.Provider value={ctx}><PageProjectOverview /></AppContext.Provider>))
-    expect(showToast).toHaveBeenCalledWith(expect.any(String), 'error')
+    expect(showToast).toHaveBeenCalledWith('Não foi possível concluir a operação. Tente de novo.', 'error')
     expect(card().textContent).toContain('Nenhuma ação aberta.')
+    expect(log).toHaveBeenCalledTimes(1)
+    log.mockRestore()
   })
 })

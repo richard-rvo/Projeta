@@ -5,7 +5,7 @@ import {
   deleteProject as dbDeleteProject, saveTask as dbSaveTask,
   deleteTask as dbDeleteTask, saveAnomaly as dbSaveAnomaly,
   deleteAnomaly as dbDeleteAnomaly, updateWorkspace as dbUpdateWorkspace,
-  verifyWorkspaceData, friendlyDbError,
+  verifyWorkspaceData, friendlyDbError, toFriendlyError,
 } from '../utils/supabaseRepository';
 
 const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
@@ -61,6 +61,7 @@ export const ACTIONS = {
   AUTH_READY: 'AUTH_READY',
   AUTH_SET_RECOVERY: 'AUTH_SET_RECOVERY',
   AUTH_ERROR: 'AUTH_ERROR',
+  AUTH_RETRY: 'AUTH_RETRY',
   AUTH_SIGNED_OUT: 'AUTH_SIGNED_OUT',
   AUTH_WORKSPACE_UPDATED: 'AUTH_WORKSPACE_UPDATED',
   ADD_ANOMALY: 'ADD_ANOMALY',
@@ -153,6 +154,8 @@ export function reducer(state, action) {
         auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false },
         projects: [], tasks: [], anomalies: [],
       };
+    case ACTIONS.AUTH_RETRY:
+      return { ...state, auth: { ...state.auth, status: 'loading', error: null } };
     case ACTIONS.AUTH_SIGNED_OUT:
       return {
         ...state,
@@ -324,6 +327,7 @@ export function AppProvider({ children }) {
   const projectsRef = useRef(state.projects);
   const historyRef = useRef(state.history);
   const workspaceRef = useRef(state.auth.workspace);
+  const loadUserRef = useRef(null);
   useEffect(() => { projectsRef.current = state.projects; }, [state.projects]);
   useEffect(() => { tasksRef.current = state.tasks; }, [state.tasks]);
   useEffect(() => { historyRef.current = state.history; }, [state.history]);
@@ -352,11 +356,12 @@ export function AppProvider({ children }) {
         workspaceRef.current = workspace;
         dispatch({ type: ACTIONS.AUTH_READY, payload: { user, workspace, data } });
       } catch (error) {
-        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: error?.message || 'Falha ao carregar o workspace.' });
+        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
       } finally {
         if (loadingUserId === user.id) loadingUserId = null;
       }
     };
+    loadUserRef.current = loadUser;
 
     supabase.auth.getSession().then(({ data: { session } }) => loadUser(session?.user || null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -365,8 +370,26 @@ export function AppProvider({ children }) {
     });
     return () => {
       cancelled = true;
+      loadUserRef.current = null;
       subscription.unsubscribe();
     };
+  }, []);
+
+  /* Tela de erro do carregamento: refaz a carga para o usuário da sessão atual. */
+  const retryLoad = useCallback(async () => {
+    if (!supabase || !loadUserRef.current) return;
+    dispatch({ type: ACTIONS.AUTH_RETRY });
+    let session;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      session = data?.session;
+    } catch (error) {
+      // Sem conseguir ler a sessão (ex.: offline), continua no erro em vez de cair na página pública.
+      dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
+      return;
+    }
+    await loadUserRef.current?.(session?.user || null);
   }, []);
 
   useEffect(() => {
@@ -403,11 +426,13 @@ export function AppProvider({ children }) {
       });
       return result;
     } catch (error) {
+      // Diálogos mostram error.message: a tradução precisa chegar até eles, não só ao state.save.
+      const friendly = toFriendlyError(error);
       dispatch({
         type: ACTIONS.SAVE_FAILED,
-        payload: { error: saveErrorMessage(error) },
+        payload: { error: friendly.message },
       });
-      throw error;
+      throw friendly;
     }
   }, []);
 
@@ -432,8 +457,9 @@ export function AppProvider({ children }) {
       confirmLocalSave();
       return true;
     } catch (error) {
-      reportLocalSaveError(error);
-      throw error;
+      const friendly = toFriendlyError(error);
+      reportLocalSaveError(friendly);
+      throw friendly;
     }
   }, [confirmLocalSave, reportLocalSaveError, state.anomalies, state.projects, state.tasks]);
 
@@ -715,6 +741,7 @@ export function AppProvider({ children }) {
     requestPasswordReset,
     updatePassword,
     signOut,
+    retryLoad,
     updateWorkspace,
   };
 

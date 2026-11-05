@@ -7,6 +7,7 @@ import PageMinutes from './PageMinutes'
 import { useProjectMinutes } from './useProjectMinutes'
 import { buildNewTask } from '../../utils/taskFactory'
 import { extractActions } from './minuteDoc'
+import { friendlyError } from '../../utils/supabaseRepository'
 
 vi.mock('./useProjectMinutes', () => ({ useProjectMinutes: vi.fn() }))
 vi.mock('./editor/MinuteEditor', () => ({
@@ -160,11 +161,13 @@ describe('PageMinutes', () => {
     })
 
     it('falha ao criar tarefa mostra erro e não altera o documento', async () => {
-      const addTask = vi.fn().mockRejectedValue(new Error('boom'))
+      // addTask passa por withPersistence, que já relança o erro traduzido.
+      const addTask = vi.fn().mockRejectedValue(friendlyError('Você não tem permissão para esta ação.'))
       const m = withActions(actionNode('a1', 'X'))
       const hook = await render({ minutes: [m], activeMinute: m }, { ...ctxFor(), addTask })
       await run(() => document.querySelector('[data-testid="editor-create"]').click())
-      expect(hook.ctx.showToast).toHaveBeenCalledWith(expect.stringContaining('Não foi possível criar a tarefa'), 'error')
+      expect(hook.ctx.showToast).toHaveBeenCalledWith(
+        'Não foi possível criar a tarefa. Você não tem permissão para esta ação.', 'error')
       expect(hook.updateActiveMinute).not.toHaveBeenCalled()
     })
 
