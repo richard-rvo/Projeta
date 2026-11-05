@@ -2,25 +2,52 @@ import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { validatePassword } from '@/utils/password';
+import { authErrorMessage, isTransientAuthError } from '@/utils/authErrors';
 
-export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn, signUp }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+const FORGOT_MESSAGE = 'Se houver uma conta com este e-mail, enviamos um link para redefinir a senha.';
+
+export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn, signUp, requestPasswordReset, updatePassword }) {
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const isSignup = mode === 'signup';
+  const isForgot = mode === 'forgot';
+  const isReset = mode === 'reset';
 
   const submit = async (event) => {
     event.preventDefault(); setError(''); setMessage('');
-    if (form.password.length < 6) { setError('Use uma senha com pelo menos 6 caracteres.'); return; }
+    if (isForgot) {
+      setBusy(true);
+      try {
+        const result = await requestPasswordReset(form.email.trim());
+        // Mensagem neutra: não revela se a conta existe. Só falhas de rede, limite ou servidor viram erro.
+        if (isTransientAuthError(result?.error)) setError(authErrorMessage(result.error));
+        else setMessage(FORGOT_MESSAGE);
+      } catch (submitError) { setError(authErrorMessage(submitError)); } finally { setBusy(false); }
+      return;
+    }
+    if (isSignup || isReset) {
+      const passwordError = validatePassword(form.password);
+      if (passwordError) { setError(passwordError); return; }
+    }
+    if (isReset && form.password !== form.confirm) { setError('As senhas não conferem.'); return; }
     setBusy(true);
     try {
+      if (isReset) {
+        const result = await updatePassword(form.password);
+        if (result?.error) setError(authErrorMessage(result.error));
+        return;
+      }
       const result = isSignup ? await signUp(form.email.trim(), form.password, form.name.trim()) : await signIn(form.email.trim(), form.password);
       if (result?.error) throw result.error;
       if (isSignup && !result?.data?.session) setMessage('Conta criada. Confira seu e-mail para confirmar o acesso.');
-    } catch (submitError) { setError(submitError?.message || 'Não foi possível concluir o acesso.'); } finally { setBusy(false); }
+    } catch (submitError) { setError(authErrorMessage(submitError)); } finally { setBusy(false); }
   };
+
+  const goTo = (next) => { setError(''); setMessage(''); onModeChange(next); };
 
   return (
     <main className="min-h-screen bg-surface-0 text-text-1">
@@ -46,9 +73,9 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
             </button>
           </div>
 
-          <p className="text-micro font-semibold uppercase tracking-[0.22em] text-brand">{isSignup ? 'Novo workspace' : 'Acesso seguro'}</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em]">{isSignup ? 'Crie sua conta' : 'Bem-vindo de volta'}</h2>
-          <p className="mt-2 text-sm leading-6 text-text-2">{isSignup ? 'Seu primeiro workspace será criado automaticamente.' : 'Acesse seus projetos e continue de onde parou.'}</p>
+          <p className="text-micro font-semibold uppercase tracking-[0.22em] text-brand">{isSignup ? 'Novo workspace' : isForgot || isReset ? 'Recuperação de acesso' : 'Acesso seguro'}</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em]">{isSignup ? 'Crie sua conta' : isForgot ? 'Esqueci minha senha' : isReset ? 'Nova senha' : 'Bem-vindo de volta'}</h2>
+          <p className="mt-2 text-sm leading-6 text-text-2">{isSignup ? 'Seu primeiro workspace será criado automaticamente.' : isForgot ? 'Informe seu e-mail para receber um link de redefinição.' : isReset ? 'Escolha uma nova senha para acessar sua conta.' : 'Acesse seus projetos e continue de onde parou.'}</p>
 
           <form onSubmit={submit} className="mt-7 flex flex-col gap-4">
             {isSignup && (
@@ -58,36 +85,55 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
               </label>
             )}
 
+            {!isReset && (
             <label className="flex flex-col gap-1.5 text-xs text-text-2">
               E-mail
               <Input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="voce@empresa.com" />
             </label>
+            )}
 
+            {!isForgot && (
             <label className="flex flex-col gap-1.5 text-xs text-text-2">
-              Senha
+              {isReset ? 'Nova senha' : 'Senha'}
               <div className="relative">
-                <Input type={showPassword ? 'text' : 'password'} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Mínimo de 6 caracteres" className="pr-10" />
+                <Input type={showPassword ? 'text' : 'password'} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={isSignup || isReset ? 'Mínimo de 10 caracteres, com letras e números' : 'Sua senha'} className="pr-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center px-3 text-text-3 hover:text-text-1" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </label>
+            )}
+
+            {!isSignup && !isForgot && !isReset && (
+              <button type="button" onClick={() => goTo('forgot')} className="-mt-2 self-start text-xs font-medium text-brand hover:text-brand-hover">
+                Esqueci minha senha
+              </button>
+            )}
+
+            {isReset && (
+              <label className="flex flex-col gap-1.5 text-xs text-text-2">
+                Confirmar senha
+                <Input type={showPassword ? 'text' : 'password'} required value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} placeholder="Repita a nova senha" />
+              </label>
+            )}
 
             {error && <p role="alert" className="rounded-[var(--radius-control)] border border-sched-late/30 bg-sched-late-soft px-3 py-2 text-xs text-sched-late">{error}</p>}
             {message && <p role="status" className="rounded-[var(--radius-control)] border border-brand/30 bg-brand-soft px-3 py-2 text-xs text-brand">{message}</p>}
 
             <Button type="submit" disabled={busy} className="mt-2 h-11">
-              {busy ? 'Aguarde...' : isSignup ? 'Criar conta' : 'Entrar'}
+              {busy ? 'Aguarde...' : isSignup ? 'Criar conta' : isForgot ? 'Enviar link' : isReset ? 'Salvar nova senha' : 'Entrar'}
               <ArrowRight data-icon="inline-end" />
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-text-3">
-            {isSignup ? 'Já possui uma conta?' : 'Ainda não possui uma conta?'}{' '}
-            <button type="button" onClick={() => { setError(''); setMessage(''); onModeChange(isSignup ? 'login' : 'signup'); }} className="font-medium text-brand hover:text-brand-hover">
-              {isSignup ? 'Entrar' : 'Criar conta'}
-            </button>
-          </p>
+          {!isReset && (
+            <p className="mt-6 text-center text-xs text-text-3">
+              {isForgot ? 'Lembrou a senha?' : isSignup ? 'Já possui uma conta?' : 'Ainda não possui uma conta?'}{' '}
+              <button type="button" onClick={() => goTo(isSignup || isForgot ? 'login' : 'signup')} className="font-medium text-brand hover:text-brand-hover">
+                {isSignup || isForgot ? 'Entrar' : 'Criar conta'}
+              </button>
+            </p>
+          )}
         </section>
       </div>
     </main>

@@ -68,6 +68,13 @@ export default function AnomalyBoard({
       .sort((a, b) => String(b.reportedAt || '').localeCompare(String(a.reportedAt || '')));
   }, [anomalies, query, severity, status]);
 
+  /* A central global recebe as tarefas de todos os projetos, mas a anomalia só
+     pode apontar para tarefa do próprio projeto. O formulário não troca o projeto. */
+  const formTasks = useMemo(
+    () => (editing?.projectId ? tasks.filter((t) => t.projectId === editing.projectId) : tasks),
+    [tasks, editing]
+  );
+
   const selected = filtered.find((a) => a.id === selectedId) || null;
   const openCount = anomalies.filter((a) => a.status === 'aberta').length;
 
@@ -263,7 +270,7 @@ export default function AnomalyBoard({
         open={formOpen}
         onOpenChange={setFormOpen}
         initial={editing}
-        tasks={tasks}
+        tasks={formTasks}
         onError={onError}
         onSave={async (data) => {
           try {

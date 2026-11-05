@@ -216,6 +216,7 @@ export default function TaskInspectorDrawer() {
               )}
             </div>
             <input
+              maxLength={500}
               value={draft.name || ''}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               onBlur={(e) => e.target.value !== task.name && commit({ name: e.target.value }, 'Renomear tarefa')}

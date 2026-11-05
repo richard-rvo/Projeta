@@ -13,6 +13,7 @@ import PageReports from './pages/PageReports';
 import PageSettings from './pages/PageSettings';
 import PublicLanding from './pages/PublicLanding';
 import AuthPage from './pages/AuthPage';
+import WorkspaceLoadError from './components/shell/WorkspaceLoadError';
 
 /**
  * Contêiner de rolagem para views que são documentos, não superfícies.
@@ -23,7 +24,7 @@ export function PageScroll({ children }) {
 }
 
 function App() {
-  const { state, signIn, signUp } = useContext(AppContext);
+  const { state, signIn, signUp, requestPasswordReset, updatePassword, retryLoad, signOut } = useContext(AppContext);
   const [authMode, setAuthMode] = useState('landing');
   useGlobalShortcuts();
 
@@ -31,10 +32,24 @@ function App() {
     return <div className="grid min-h-screen place-items-center bg-surface-0 text-sm text-text-2">Carregando workspace...</div>;
   }
 
+  // Falha ao carregar não é "deslogado": mostra o erro em vez da página pública.
+  if (state.auth.status === 'error') {
+    return (
+      <>
+        <WorkspaceLoadError message={state.auth.error} onRetry={retryLoad} onSignOut={signOut} />
+        <Toast />
+      </>
+    );
+  }
+
+  if (state.auth.user && state.auth.recovery) {
+    return <AuthPage mode="reset" updatePassword={updatePassword} />;
+  }
+
   if (!state.auth.user) {
     return authMode === 'landing'
       ? <PublicLanding onStart={() => setAuthMode('login')} />
-      : <AuthPage mode={authMode} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} signUp={signUp} />;
+      : <AuthPage mode={authMode} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} signUp={signUp} requestPasswordReset={requestPasswordReset} />;
   }
 
   const renderPage = () => {

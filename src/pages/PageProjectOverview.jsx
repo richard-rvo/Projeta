@@ -5,11 +5,13 @@ import MiniTimeline from '../components/MiniTimeline';
 import CurveChart from '../components/CurveChart';
 import { calculateProjectMetrics } from '../utils/progress';
 import { computeSCurve } from '../utils/scurve';
-import { today, addDays, dateOf, formatDateLong, durationDays, isMilestone } from '../utils/schedule';
+import { today, addDays, dateOf, formatDateLong, durationDays, isMilestone, formatDateShort } from '../utils/schedule';
 import {
   countByStage, stageOf, isLate, viewProgress, projectSpan, leaves,
 } from '../utils/taskState';
-import { Calendar, Clock, AlertTriangle, ChevronRight, Flag } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, ChevronRight, Flag, ListChecks } from 'lucide-react';
+import { useOpenMinuteActions } from '../features/minutes/useOpenMinuteActions';
+import { isActionOverdue } from '../features/minutes/minuteDoc';
 
 /* ═══════════════════════════════════════════════════════════════
    VISÃO GERAL — o estado do projeto em uma tela
@@ -41,7 +43,8 @@ const SEVERITY_TONE = {
 };
 
 export default function PageProjectOverview() {
-  const { state, setProjectTab, openTaskInspector } = useContext(AppContext);
+  const { state, setProjectTab, openTaskInspector, openMinuteFromOverview } = useContext(AppContext);
+  const openActions = useOpenMinuteActions(state.activeProjectId);
 
   const project = state.projects.find((p) => p.id === state.activeProjectId);
   const tasks = useMemo(
@@ -202,6 +205,53 @@ export default function PageProjectOverview() {
               </ul>
             </Card>
           )}
+
+          <Card
+            title="Ações abertas"
+            icon={ListChecks}
+            action={{ label: 'Ver atas', onClick: () => setProjectTab('minutes') }}
+          >
+            {openActions.loading ? (
+              <Empty>Carregando…</Empty>
+            ) : openActions.actions.length ? (
+              <ul className="flex flex-col">
+                {openActions.actions.map((a) => {
+                  const overdue = isActionOverdue(a, todayStr);
+                  return (
+                    <li key={a.id} className="flex items-start gap-1 rounded-[6px] px-1.5 py-1.5 hover:bg-surface-2">
+                      <button
+                        type="button"
+                        onClick={() => openMinuteFromOverview(a.minuteId)}
+                        className="flex min-w-0 flex-1 flex-col gap-0.5 text-left"
+                      >
+                        <span className="text-small leading-snug text-text-1">{a.description}</span>
+                        <span className="flex flex-wrap gap-x-2 text-micro text-text-3">
+                          <span>{a.ownerName || 'Sem responsável'}</span>
+                          {a.dueDate && (
+                            <span className={cn('tabular-nums', overdue && 'font-semibold text-sched-late')}>
+                              {formatDateShort(a.dueDate)}
+                              {overdue && <span> · Atrasada</span>}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={openActions.busy.has(a.id)}
+                        onClick={() => openActions.complete(a)}
+                        aria-label={`Concluir ação: ${a.description}`}
+                        className="shrink-0 rounded-[5px] px-1.5 py-0.5 text-micro font-medium text-text-2 transition-colors hover:bg-surface-3 hover:text-text-1 disabled:opacity-50"
+                      >
+                        Concluir
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <Empty>Nenhuma ação aberta.</Empty>
+            )}
+          </Card>
 
           <Card
             title="Anomalias"

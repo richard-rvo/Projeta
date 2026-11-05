@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { Suspense, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { PageScroll } from '../App';
 import PageProjectOverview from '../pages/PageProjectOverview';
@@ -6,6 +6,9 @@ import GanttView from '../views/gantt/GanttView';
 import PageKanban from '../pages/PageKanban';
 import PageSCurve from '../pages/PageSCurve';
 import PageProjectAnomalies from '../pages/PageProjectAnomalies';
+import LazyErrorBoundary from './LazyErrorBoundary';
+
+const PageMinutes = React.lazy(() => import('../features/minutes/PageMinutes'));
 
 /**
  * Roteador de views do projeto.
@@ -31,6 +34,14 @@ export default function ProjectWorkspace() {
        elas administram o próprio scroll abaixo da barra. */
     case 'scurve':
       return <PageSCurve />;
+    case 'minutes':
+      return (
+        <LazyErrorBoundary>
+          <Suspense fallback={null}>
+            <PageMinutes />
+          </Suspense>
+        </LazyErrorBoundary>
+      );
     case 'anomalies':
       return <PageProjectAnomalies />;
     case 'overview':

@@ -151,6 +151,7 @@ export const CONSTRAINT_OPTIONS = CONSTRAINT_TYPES.map((c) => ({
    · editable — aceita edição inline
    · type     — text | number | datetime | select
    · options  — (ctx) => [{ value, label }], só para select
+   · maxLength — limite do banco para o texto editado inline
    · summaryLocked — calculado em tarefa-resumo, não editável
    ─────────────────────────────────────────────────────────────── */
 
@@ -164,6 +165,7 @@ export const COLUMNS = [
     align: 'left',
     editable: true,
     type: 'text',
+    maxLength: 500,
     alwaysOn: true,
     render: (t) => t.name,
   },

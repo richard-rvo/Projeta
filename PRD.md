@@ -2,8 +2,8 @@
 
 ## Projeta — sistema de gestão de projetos
 
-**Versão:** 4.1
-**Atualizado:** agosto de 2026
+**Versão:** 4.2
+**Atualizado:** novembro de 2026
 **Produto:** Projeta
 **Domínio:** https://projeta.richardvieira.com.br
 **Logo:** [`public/logo-premium.svg`](public/logo-premium.svg)
@@ -38,7 +38,7 @@ com o backend configurado.
 3. Tornar o acompanhamento diário rápido no Gantt, quadro e tabela.
 4. Permitir o registro estruturado de anomalias em campo.
 5. Dar aos gestores uma leitura executiva de prazo, avanço e risco.
-6. Persistir os dados com isolamento por workspace e políticas RLS.
+6. Persistir os dados com isolamento por workspace e por projeto, usando políticas RLS verificadas por testes automatizados.
 7. Permitir exportar backups JSON e relatórios imprimíveis.
 
 ## 4. Identidade do produto
@@ -59,20 +59,35 @@ O usuário cria uma conta ou acessa por e-mail e senha usando o Supabase Auth.
 Ao criar a conta, o sistema envia a confirmação para a URL configurada e cria
 um perfil básico por trigger do banco.
 
-### Workspace
+### Workspace pessoal
 
-No primeiro acesso autenticado, o sistema cria um workspace para o usuário e o
-torna proprietário. O workspace possui nome e fuso horário.
+No primeiro acesso autenticado, o app chama a RPC `ensure_personal_workspace()`,
+que cria (ou devolve) o workspace pessoal do usuário (`is_personal = true`, um
+por dono) e o torna proprietário. O cliente não insere workspaces diretamente e
+só edita nome e fuso horário. Cada workspace tem um plano, `free` ou `pro`, que
+o cliente não consegue alterar.
 
-### Isolamento
+### Papéis por projeto
 
-Projetos, tarefas e anomalias carregam `workspace_id`. As tabelas possuem RLS
-e as políticas limitam leitura e escrita a membros autenticados do workspace;
-operações administrativas de workspace ficam restritas ao proprietário.
+O acesso aos dados é decidido por projeto, em `project_members`, com os papéis
+`owner`, `editor` e `viewer`. Quem cria o projeto vira `owner` por trigger.
+Leitura de projetos, tarefas, anomalias e atas exige `viewer` ou superior;
+criação, edição e exclusão exigem `editor` ou superior; apagar o projeto é do
+dono. O dono do projeto, o workspace e as datas de criação são imutáveis.
 
-Convites e membros estão previstos no schema (`workspace_members` e
-`workspace_invites`), mas o fluxo completo de convite ainda não está exposto
-na interface atual.
+### Preparado para equipes
+
+O schema e as políticas já suportam vários membros por projeto e convites
+(`workspace_invites`), mas o fluxo de convite ainda não está exposto na
+interface: hoje cada projeto tem apenas o dono. Nenhuma tabela de vínculo
+(`workspace_members`, `workspace_invites`, `project_members`) aceita escrita
+direta do cliente; vínculos só nascem por código do banco.
+
+### Limites de plano
+
+O número de projetos por workspace é limitado no banco: `free` = 10 e
+`pro` = 200. Passar do limite devolve o erro `plan_limit_projects`, tratado na
+interface com uma mensagem amigável.
 
 ## 6. Navegação e shell
 
@@ -225,6 +240,25 @@ O usuário pode alternar tema, ver o estado do salvamento, exportar backup,
 editar nome e status do projeto, configurar calendário e consultar informações
 sobre o Projeta.
 
+### 7.11 Atas de reunião
+
+Cada projeto tem uma página de atas, com lista agrupada e criação a
+partir de modelos (Reunião de status, Kickoff, Diária de campo ou em branco).
+
+- Editor de texto com menu `/` para inserir títulos, listas, checklist,
+  citação, divisor e os blocos **Ação** e **Decisão**.
+- Cada ata tem título, data e hora, local e participantes. O salvamento é
+  automático.
+- Um bloco **Ação** tem responsável, prazo e status e pode virar uma **tarefa**
+  do cronograma com um clique; o vínculo fica no documento.
+- A **Visão Geral** do projeto mostra o card "Ações abertas", reunindo as ações
+  pendentes das atas.
+- Impressão em A4 pela folha de impressão da ata.
+
+O documento é a fonte da verdade; as ações são espelhadas na tabela
+`meeting_actions` para consulta. Permissões seguem os papéis por projeto
+(leitura `viewer`, escrita `editor`).
+
 ## 8. Dados e persistência
 
 ### Entidades
@@ -233,9 +267,12 @@ sobre o Projeta.
 - `workspaces`: unidade de isolamento, proprietário e fuso horário.
 - `workspace_members`: membros e papéis.
 - `workspace_invites`: convites preparados para evolução.
+- `project_members`: papel (`owner`, `editor`, `viewer`) de cada usuário em cada projeto.
 - `projects`: projeto, status, calendários e configurações.
 - `tasks`: tarefas, datas, progresso, dependências e planejamento.
 - `anomalies`: ocorrências, severidade, fotos e detalhes de campo.
+- `meeting_minutes`: atas de reunião (documento, texto para busca e metadados).
+- `meeting_actions`: projeção das ações das atas, gravada só pela RPC de salvamento.
 
 ### Regras de dados
 
@@ -247,6 +284,7 @@ sobre o Projeta.
 - Calendários e metadados são armazenados em JSONB.
 - O navegador usa somente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
 - Chaves de service role nunca podem ser expostas no bundle.
+- Mudanças de schema só entram por migração em `supabase/migrations/`.
 
 ## 9. Requisitos não funcionais
 
@@ -277,8 +315,20 @@ sobre o Projeta.
 
 ### Segurança
 
-- RLS habilitado nas tabelas de domínio.
-- Isolamento sempre baseado em `workspace_id`.
+- RLS habilitado e forçado nas tabelas de domínio, com acesso por **projeto**
+  (papéis `owner`, `editor`, `viewer`) e não apenas por workspace.
+- A RLS é coberta por testes automatizados (`npm run test:rls`) contra um
+  projeto de staging, com trava de alvo para nunca rodar em produção.
+- Cabeçalhos de segurança e Content Security Policy restritiva na Vercel
+  (CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+  `Permissions-Policy`).
+- Política de senha: mínimo de 10 caracteres com letras e números, confirmação
+  de e-mail e fluxo de recuperação de senha.
+- Biblioteca SheetJS (`xlsx`) em versão corrigida e carregada sob demanda,
+  apenas na exportação para Excel.
+- Fonte Inter auto-hospedada; nenhum recurso de fonte de terceiros.
+- Limites de dados no banco: domínios de status e severidade, tamanho de
+  textos, fotos (3 MB) e metadados (100 KB) por linha, e projetos por plano.
 - Nenhum segredo administrativo no frontend.
 - Autenticação e sessão delegadas ao Supabase Auth.
 
@@ -300,11 +350,13 @@ public/logo-premium.svg       Logo oficial Projeta
 src/components/               Shell, formulários, dialogs e UI
 src/context/AppContext.jsx    Estado global, auth e persistência
 src/pages/                    Telas globais e de projeto
+src/features/minutes/         Atas de reunião
 src/utils/                    Calendário, CPM, duração e dados
 src/views/gantt/              Grade, timeline, filtros e minimapa
 src/styles/                   Tokens, base, impressão e Gantt
-supabase/migrations/          Schema e políticas RLS
-vercel.json                   Build e fallback da SPA
+supabase/migrations/          Schema e políticas RLS (fonte única)
+tests/rls/                    Testes de RLS contra o staging
+vercel.json                   Build, fallback da SPA e cabeçalhos de segurança
 ```
 
 ## 11. Critérios de publicação

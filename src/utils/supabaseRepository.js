@@ -3,18 +3,65 @@ import { DEFAULT_CALENDAR, DEFAULT_CALENDAR_ID, calendarsOf } from './calendar';
 import { readDependencies } from './dependencies';
 import { generateId } from './ids';
 
-function requireClient() {
-  if (!supabase) throw new Error('Supabase não está configurado. Confira SUPABASE_URL e SUPABASE_ANON_KEY.');
+/** Erro cuja mensagem já está pronta para a interface: friendlyDbError a devolve como está. */
+export function friendlyError(message, extra) {
+  return Object.assign(new Error(message), extra, { friendly: true });
+}
+
+export function requireClient() {
+  if (!supabase) throw friendlyError('Supabase não está configurado. Confira SUPABASE_URL e SUPABASE_ANON_KEY.');
   return supabase;
 }
 
-function throwIfError(result) {
-  if (result.error) throw result.error;
+const NETWORK_PATTERN = /Failed to fetch|Load failed|NetworkError/i;
+const SQLSTATE_PATTERN = /^[0-9A-Z]{5}$/;
+
+function isNetworkError(error, message) {
+  return error?.status === 0 || error?.name === 'TypeError' || NETWORK_PATTERN.test(message);
+}
+
+/* Corpo HTML (WAF, proxy) ou 403 sem código do Postgres: quem recusou foi a borda, não o banco. */
+function isServerRefusal(error, message) {
+  const trimmed = message.trim();
+  if (trimmed.startsWith('<') || /<html/i.test(trimmed)) return true;
+  return error?.status === 403 && !SQLSTATE_PATTERN.test(String(error?.code || ''));
+}
+
+/** Mensagem em português para qualquer erro de dados. Nunca devolve o texto cru do servidor. */
+export function friendlyDbError(error) {
+  if (error?.friendly) return error.message;
+  const message = String(error?.message || '');
+  if (`${error?.code || ''} ${message}`.includes('plan_limit_projects')) return 'Você atingiu o limite de projetos do seu plano.';
+  if (error?.code === '42501') return 'Você não tem permissão para esta ação.';
+  if (error?.code === '23514') return 'Algum campo está fora do formato ou do tamanho permitido.';
+  if (error?.code === '23503') return 'Um item vinculado não existe mais. Recarregue a página.';
+  if (isNetworkError(error, message)) return 'Sem conexão. Verifique a internet e tente de novo.';
+  if (isServerRefusal(error, message)) return 'O servidor recusou a solicitação. Tente de novo com outro texto.';
+  console.error('Erro de dados não mapeado:', error);
+  return 'Não foi possível concluir a operação. Tente de novo.';
+}
+
+/** Erro pronto para a interface: mensagem traduzida, com o código e o erro original preservados. */
+export function toFriendlyError(error) {
+  if (error?.friendly) return error;
+  return friendlyError(friendlyDbError(error), { code: error?.code, cause: error });
+}
+
+export function throwIfError(result) {
+  const { error } = result;
+  if (error) {
+    // O status HTTP vem na resposta, não no erro; friendlyDbError precisa dele para reconhecer 403 e rede.
+    if (typeof error === 'object' && error.status === undefined && typeof result.status === 'number') {
+      error.status = result.status;
+    }
+    throw error;
+  }
   return result.data;
 }
 
-function projectFromRow(row) {
+export function projectFromRow(row) {
   return {
+    ...(row.metadata || {}),
     id: row.id,
     name: row.name,
     description: row.description || '',
@@ -24,13 +71,12 @@ function projectFromRow(row) {
     calendars: Array.isArray(row.calendars) && row.calendars.length ? row.calendars : [{ ...DEFAULT_CALENDAR }],
     defaultCalendarId: row.default_calendar_id || DEFAULT_CALENDAR_ID,
     calendarSettings: row.calendar_settings || { durationDisplay: 'auto' },
-    ...(row.metadata || {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-function projectToRow(project, workspaceId) {
+export function projectToRow(project, workspaceId) {
   const calendars = calendarsOf(project);
   return {
     id: project.id || generateId(),
@@ -50,8 +96,9 @@ function projectToRow(project, workspaceId) {
   };
 }
 
-function taskFromRow(row) {
+export function taskFromRow(row) {
   return {
+    ...(row.metadata || {}),
     id: row.id,
     projectId: row.project_id,
     name: row.name || '',
@@ -68,13 +115,12 @@ function taskFromRow(row) {
     indentLevel: row.indent_level || 0,
     order: row.order_index || 0,
     resources: row.resources || [],
-    ...(row.metadata || {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-function taskToRow(task, workspaceId) {
+export function taskToRow(task, workspaceId) {
   return {
     id: task.id || generateId(),
     workspace_id: workspaceId,
@@ -100,8 +146,9 @@ function taskToRow(task, workspaceId) {
   };
 }
 
-function anomalyFromRow(row) {
+export function anomalyFromRow(row) {
   return {
+    ...(row.metadata || {}),
     id: row.id,
     projectId: row.project_id,
     taskId: row.task_id || '',
@@ -112,13 +159,12 @@ function anomalyFromRow(row) {
     photos: row.photos || [],
     occurredAt: row.occurred_at || '',
     resolvedAt: row.resolved_at || '',
-    ...(row.metadata || {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-function anomalyToRow(anomaly, workspaceId) {
+export function anomalyToRow(anomaly, workspaceId) {
   const {
     id, projectId, taskId, title, description, status, severity, photos,
     occurredAt, resolvedAt, ...metadata
@@ -148,20 +194,9 @@ export async function ensureWorkspace(user) {
   }, { onConflict: 'id' });
   throwIfError(profile);
 
-  const existing = await client
-    .from('workspaces')
-    .select('*')
-    .order('created_at', { ascending: true })
-    .limit(1);
-  const workspaces = throwIfError(existing) || [];
-  if (workspaces[0]) return workspaces[0];
-
-  const created = await client
-    .from('workspaces')
-    .insert({ name: `${user.user_metadata?.full_name || 'Meu'} workspace`, owner_id: user.id })
-    .select('*')
-    .single();
-  return throwIfError(created);
+  // O workspace pessoal nasce no servidor (SECURITY DEFINER): o cliente não
+  // insere em workspaces e nunca cai num workspace alheio só por ser mais antigo.
+  return throwIfError(await client.rpc('ensure_personal_workspace').single());
 }
 
 export async function updateWorkspace(workspaceId, patch) {
@@ -230,7 +265,7 @@ export async function verifyWorkspaceData(workspaceId, expected) {
   if (normalize(actual.projects) !== normalize(expected.projects)
     || normalize(actual.tasks) !== normalize(expected.tasks)
     || normalize(actual.anomalies) !== normalize(expected.anomalies)) {
-    throw new Error('Os dados em tela e o Supabase não conferem.');
+    throw friendlyError('Os dados em tela e o Supabase não conferem.');
   }
   return true;
 }

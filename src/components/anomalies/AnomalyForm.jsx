@@ -98,7 +98,7 @@ export default function AnomalyForm({
           {step === 0 && (
             <>
               <Field label="Título" required>
-                <Input autoFocus value={form.title}
+                <Input autoFocus maxLength={300} value={form.title}
                   onChange={(e) => set({ title: e.target.value })}
                   placeholder="Ex: Trinca em viga de sustentação" />
               </Field>
@@ -147,7 +147,7 @@ export default function AnomalyForm({
           {step === 1 && (
             <>
               <Field label="Descrição">
-                <Textarea rows={3}
+                <Textarea rows={3} maxLength={10000}
                   value={form.description} onChange={(e) => set({ description: e.target.value })}
                   placeholder="O que foi observado?" />
               </Field>

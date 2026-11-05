@@ -5,7 +5,7 @@ import {
   deleteProject as dbDeleteProject, saveTask as dbSaveTask,
   deleteTask as dbDeleteTask, saveAnomaly as dbSaveAnomaly,
   deleteAnomaly as dbDeleteAnomaly, updateWorkspace as dbUpdateWorkspace,
-  verifyWorkspaceData,
+  verifyWorkspaceData, friendlyDbError, toFriendlyError,
 } from '../utils/supabaseRepository';
 
 const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
@@ -20,6 +20,7 @@ const initialState = {
     user: null,
     workspace: null,
     error: null,
+    recovery: false,
   },
   activeProjectId: null,
   activeProjectTab: 'overview',   // 'overview' | 'gantt' | 'kanban' | 'scurve' | 'anomalies'
@@ -41,6 +42,7 @@ const initialState = {
      para a sessão, como em qualquer editor. */
   history: { past: [], future: [] },
   inspectorTaskId: null,
+  focusMinuteId: null,            // ata a abrir ao entrar na aba Atas (sem router, Fase 2 troca por URL)
   isCommandPaletteOpen: false,
 };
 
@@ -57,7 +59,9 @@ export const ACTIONS = {
   REMOVE_TASK: 'REMOVE_TASK',
   SET_ANOMALIES: 'SET_ANOMALIES',
   AUTH_READY: 'AUTH_READY',
+  AUTH_SET_RECOVERY: 'AUTH_SET_RECOVERY',
   AUTH_ERROR: 'AUTH_ERROR',
+  AUTH_RETRY: 'AUTH_RETRY',
   AUTH_SIGNED_OUT: 'AUTH_SIGNED_OUT',
   AUTH_WORKSPACE_UPDATED: 'AUTH_WORKSPACE_UPDATED',
   ADD_ANOMALY: 'ADD_ANOMALY',
@@ -73,6 +77,8 @@ export const ACTIONS = {
   UNDO: 'UNDO',
   REDO: 'REDO',
   SET_INSPECTOR_TASK: 'SET_INSPECTOR_TASK',
+  OPEN_MINUTE: 'OPEN_MINUTE',
+  CLEAR_FOCUS_MINUTE: 'CLEAR_FOCUS_MINUTE',
   TOGGLE_COMMAND_PALETTE: 'TOGGLE_COMMAND_PALETTE',
   SAVE_STARTED: 'SAVE_STARTED',
   SAVE_SUCCEEDED: 'SAVE_SUCCEEDED',
@@ -83,7 +89,7 @@ export const ACTIONS = {
 };
 
 /* ── reducer ────────────────────────────────────────────────── */
-function reducer(state, action) {
+export function reducer(state, action) {
   switch (action.type) {
     case ACTIONS.SET_PROJECTS:
       return { ...state, projects: action.payload };
@@ -135,21 +141,25 @@ function reducer(state, action) {
     case ACTIONS.AUTH_READY:
       return {
         ...state,
-        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null },
+        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null, recovery: state.auth.recovery },
         projects: action.payload.data.projects,
         tasks: action.payload.data.tasks,
         anomalies: action.payload.data.anomalies,
       };
+    case ACTIONS.AUTH_SET_RECOVERY:
+      return { ...state, auth: { ...state.auth, recovery: Boolean(action.payload) } };
     case ACTIONS.AUTH_ERROR:
       return {
         ...state,
-        auth: { status: 'error', user: null, workspace: null, error: action.payload },
+        auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false },
         projects: [], tasks: [], anomalies: [],
       };
+    case ACTIONS.AUTH_RETRY:
+      return { ...state, auth: { ...state.auth, status: 'loading', error: null } };
     case ACTIONS.AUTH_SIGNED_OUT:
       return {
         ...state,
-        auth: { status: 'ready', user: null, workspace: null, error: null },
+        auth: { status: 'ready', user: null, workspace: null, error: null, recovery: false },
         projects: [], tasks: [], anomalies: [], activeProjectId: null,
         activePage: 'pagePortfolio',
       };
@@ -219,6 +229,10 @@ function reducer(state, action) {
         },
       };
     }
+    case ACTIONS.OPEN_MINUTE:
+      return { ...state, focusMinuteId: action.payload, activeProjectTab: 'minutes' };
+    case ACTIONS.CLEAR_FOCUS_MINUTE:
+      return { ...state, focusMinuteId: null };
     case ACTIONS.SET_INSPECTOR_TASK:
       return { ...state, inspectorTaskId: action.payload };
     case ACTIONS.TOGGLE_COMMAND_PALETTE:
@@ -293,7 +307,7 @@ function reducer(state, action) {
 export const AppContext = createContext();
 
 function saveErrorMessage(error) {
-  return error?.message || 'Não foi possível gravar no workspace Supabase.';
+  return friendlyDbError(error);
 }
 
 function orderById(list) {
@@ -313,6 +327,7 @@ export function AppProvider({ children }) {
   const projectsRef = useRef(state.projects);
   const historyRef = useRef(state.history);
   const workspaceRef = useRef(state.auth.workspace);
+  const loadUserRef = useRef(null);
   useEffect(() => { projectsRef.current = state.projects; }, [state.projects]);
   useEffect(() => { tasksRef.current = state.tasks; }, [state.tasks]);
   useEffect(() => { historyRef.current = state.history; }, [state.history]);
@@ -341,20 +356,40 @@ export function AppProvider({ children }) {
         workspaceRef.current = workspace;
         dispatch({ type: ACTIONS.AUTH_READY, payload: { user, workspace, data } });
       } catch (error) {
-        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: error?.message || 'Falha ao carregar o workspace.' });
+        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
       } finally {
         if (loadingUserId === user.id) loadingUserId = null;
       }
     };
+    loadUserRef.current = loadUser;
 
     supabase.auth.getSession().then(({ data: { session } }) => loadUser(session?.user || null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') dispatch({ type: ACTIONS.AUTH_SET_RECOVERY, payload: true });
       window.setTimeout(() => loadUser(session?.user || null), 0);
     });
     return () => {
       cancelled = true;
+      loadUserRef.current = null;
       subscription.unsubscribe();
     };
+  }, []);
+
+  /* Tela de erro do carregamento: refaz a carga para o usuário da sessão atual. */
+  const retryLoad = useCallback(async () => {
+    if (!supabase || !loadUserRef.current) return;
+    dispatch({ type: ACTIONS.AUTH_RETRY });
+    let session;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      session = data?.session;
+    } catch (error) {
+      // Sem conseguir ler a sessão (ex.: offline), continua no erro em vez de cair na página pública.
+      dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
+      return;
+    }
+    await loadUserRef.current?.(session?.user || null);
   }, []);
 
   useEffect(() => {
@@ -391,11 +426,13 @@ export function AppProvider({ children }) {
       });
       return result;
     } catch (error) {
+      // Diálogos mostram error.message: a tradução precisa chegar até eles, não só ao state.save.
+      const friendly = toFriendlyError(error);
       dispatch({
         type: ACTIONS.SAVE_FAILED,
-        payload: { error: saveErrorMessage(error) },
+        payload: { error: friendly.message },
       });
-      throw error;
+      throw friendly;
     }
   }, []);
 
@@ -420,8 +457,9 @@ export function AppProvider({ children }) {
       confirmLocalSave();
       return true;
     } catch (error) {
-      reportLocalSaveError(error);
-      throw error;
+      const friendly = toFriendlyError(error);
+      reportLocalSaveError(friendly);
+      throw friendly;
     }
   }, [confirmLocalSave, reportLocalSaveError, state.anomalies, state.projects, state.tasks]);
 
@@ -589,6 +627,14 @@ export function AppProvider({ children }) {
     dispatch({ type: ACTIONS.SET_ACTIVE_PROJECT_TAB, payload: tab });
   }, []);
 
+  const openMinuteFromOverview = useCallback((minuteId) => {
+    dispatch({ type: ACTIONS.OPEN_MINUTE, payload: minuteId });
+  }, []);
+
+  const clearFocusMinute = useCallback(() => {
+    dispatch({ type: ACTIONS.CLEAR_FOCUS_MINUTE });
+  }, []);
+
   const showToast = useCallback((message, type = 'info') => {
     dispatch({ type: ACTIONS.SET_TOAST, payload: { message, type } });
   }, []);
@@ -641,6 +687,18 @@ export function AppProvider({ children }) {
     });
   }, []);
 
+  const requestPasswordReset = useCallback((email) => {
+    if (!supabase) return Promise.reject(new Error('Supabase não está configurado.'));
+    return supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl });
+  }, []);
+
+  const updatePassword = useCallback(async (password) => {
+    if (!supabase) throw new Error('Supabase não está configurado.');
+    const result = await supabase.auth.updateUser({ password });
+    if (!result?.error) dispatch({ type: ACTIONS.AUTH_SET_RECOVERY, payload: false });
+    return result;
+  }, []);
+
   const signOut = useCallback(() => supabase?.auth.signOut(), []);
 
   const value = {
@@ -667,6 +725,8 @@ export function AppProvider({ children }) {
     navigate,
     selectProject,
     setProjectTab,
+    openMinuteFromOverview,
+    clearFocusMinute,
     showToast,
     openTaskInspector,
     closeTaskInspector,
@@ -678,7 +738,10 @@ export function AppProvider({ children }) {
     reportLocalSaveError,
     signIn,
     signUp,
+    requestPasswordReset,
+    updatePassword,
     signOut,
+    retryLoad,
     updateWorkspace,
   };
 
