@@ -14,6 +14,7 @@ import PageSettings from './pages/PageSettings';
 import PublicLanding from './pages/PublicLanding';
 import AuthPage from './pages/AuthPage';
 import WorkspaceLoadError from './components/shell/WorkspaceLoadError';
+import AccessRevoked from './components/shell/AccessRevoked';
 
 /**
  * Contêiner de rolagem para views que são documentos, não superfícies.
@@ -24,7 +25,7 @@ export function PageScroll({ children }) {
 }
 
 function App() {
-  const { state, signIn, signUp, requestPasswordReset, updatePassword, retryLoad, signOut } = useContext(AppContext);
+  const { state, signIn, requestPasswordReset, updatePassword, retryLoad, signOut } = useContext(AppContext);
   const [authMode, setAuthMode] = useState('landing');
   useGlobalShortcuts();
 
@@ -33,6 +34,14 @@ function App() {
   }
 
   // Falha ao carregar não é "deslogado": mostra o erro em vez da página pública.
+  if (state.auth.status === 'error' && state.auth.errorCode === 'access_revoked') {
+    return (
+      <>
+        <AccessRevoked message={state.auth.error} onSignOut={signOut} />
+        <Toast />
+      </>
+    );
+  }
   if (state.auth.status === 'error') {
     return (
       <>
@@ -46,10 +55,14 @@ function App() {
     return <AuthPage mode="reset" updatePassword={updatePassword} />;
   }
 
+  if (state.auth.user && state.auth.mustSetPassword) {
+    return <AuthPage mode="invite" updatePassword={updatePassword} />;
+  }
+
   if (!state.auth.user) {
     return authMode === 'landing'
       ? <PublicLanding onStart={() => setAuthMode('login')} />
-      : <AuthPage mode={authMode} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} signUp={signUp} requestPasswordReset={requestPasswordReset} />;
+      : <AuthPage mode={authMode} onModeChange={setAuthMode} onBack={() => setAuthMode('landing')} signIn={signIn} requestPasswordReset={requestPasswordReset} />;
   }
 
   const renderPage = () => {

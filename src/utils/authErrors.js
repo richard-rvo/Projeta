@@ -25,7 +25,7 @@ const MESSAGES = {
   user_already_exists: 'Já existe uma conta com este e-mail.',
   email_exists: 'Já existe uma conta com este e-mail.',
   email_address_invalid: 'E-mail inválido.',
-  signup_disabled: 'Novos cadastros estão desativados no momento.',
+  signup_disabled: 'O acesso ao Projeta é feito por convite.',
   same_password: 'A nova senha precisa ser diferente da atual.',
   weak_password: 'Senha fraca: use pelo menos 10 caracteres, com letras e números.',
 };
@@ -35,6 +35,7 @@ export function authErrorMessage(error) {
   if (Object.hasOwn(MESSAGES, code)) return MESSAGES[code];
   // Servidores antigos do GoTrue mandam só a mensagem, sem código.
   if (/invalid login credentials/i.test(String(error?.message || ''))) return MESSAGES.invalid_credentials;
+  if (/invite_required/i.test(String(error?.message || ''))) return 'O acesso ao Projeta é feito por convite.';
   if (isRateLimit(error)) return 'Muitas tentativas. Aguarde alguns minutos e tente de novo.';
   if (isNetwork(error)) return 'Sem conexão. Verifique a internet e tente de novo.';
   return FALLBACK;

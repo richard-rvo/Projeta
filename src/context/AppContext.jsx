@@ -5,12 +5,19 @@ import {
   deleteProject as dbDeleteProject, saveTask as dbSaveTask,
   deleteTask as dbDeleteTask, saveAnomaly as dbSaveAnomaly,
   deleteAnomaly as dbDeleteAnomaly, updateWorkspace as dbUpdateWorkspace,
-  verifyWorkspaceData, friendlyDbError, toFriendlyError,
+  verifyWorkspaceData, friendlyDbError, toFriendlyError, isAccessRevoked,
 } from '../utils/supabaseRepository';
 
 const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
 
 /* ── initial state ──────────────────────────────────────────── */
+/* O link do convite chega com type=invite no hash; o supabase-js limpa o hash ao processá-lo,
+   então a leitura é síncrona, na carga do módulo e na montagem do provider. */
+export function isInviteHash(hash) {
+  return new URLSearchParams(String(hash || '').replace(/^#/, '')).get('type') === 'invite';
+}
+const BOOT_INVITE = typeof window !== 'undefined' && isInviteHash(window.location.hash);
+
 const initialState = {
   projects: [],
   tasks: [],
@@ -21,6 +28,8 @@ const initialState = {
     workspace: null,
     error: null,
     recovery: false,
+    mustSetPassword: false,
+    errorCode: null,
   },
   activeProjectId: null,
   activeProjectTab: 'overview',   // 'overview' | 'gantt' | 'kanban' | 'scurve' | 'anomalies'
@@ -60,6 +69,7 @@ export const ACTIONS = {
   SET_ANOMALIES: 'SET_ANOMALIES',
   AUTH_READY: 'AUTH_READY',
   AUTH_SET_RECOVERY: 'AUTH_SET_RECOVERY',
+  AUTH_SET_MUST_SET_PASSWORD: 'AUTH_SET_MUST_SET_PASSWORD',
   AUTH_ERROR: 'AUTH_ERROR',
   AUTH_RETRY: 'AUTH_RETRY',
   AUTH_SIGNED_OUT: 'AUTH_SIGNED_OUT',
@@ -141,17 +151,19 @@ export function reducer(state, action) {
     case ACTIONS.AUTH_READY:
       return {
         ...state,
-        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null, recovery: state.auth.recovery },
+        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null, recovery: state.auth.recovery, mustSetPassword: state.auth.mustSetPassword, errorCode: null },
         projects: action.payload.data.projects,
         tasks: action.payload.data.tasks,
         anomalies: action.payload.data.anomalies,
       };
     case ACTIONS.AUTH_SET_RECOVERY:
       return { ...state, auth: { ...state.auth, recovery: Boolean(action.payload) } };
+    case ACTIONS.AUTH_SET_MUST_SET_PASSWORD:
+      return { ...state, auth: { ...state.auth, mustSetPassword: Boolean(action.payload) } };
     case ACTIONS.AUTH_ERROR:
       return {
         ...state,
-        auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false },
+        auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false, mustSetPassword: false, errorCode: action.code || null },
         projects: [], tasks: [], anomalies: [],
       };
     case ACTIONS.AUTH_RETRY:
@@ -159,7 +171,7 @@ export function reducer(state, action) {
     case ACTIONS.AUTH_SIGNED_OUT:
       return {
         ...state,
-        auth: { status: 'ready', user: null, workspace: null, error: null, recovery: false },
+        auth: { status: 'ready', user: null, workspace: null, error: null, recovery: false, mustSetPassword: false, errorCode: null },
         projects: [], tasks: [], anomalies: [], activeProjectId: null,
         activePage: 'pagePortfolio',
       };
@@ -319,7 +331,11 @@ function sameCollection(a, b) {
 }
 
 export function AppProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, initialState, (base) => (
+    BOOT_INVITE || (typeof window !== 'undefined' && isInviteHash(window.location.hash))
+      ? { ...base, auth: { ...base.auth, mustSetPassword: true } }
+      : base
+  ));
 
   /* Espelhos do estado para os callbacks estáveis. Sem eles, um
      useCallback com deps [] leria sempre o primeiro render. */
@@ -356,7 +372,7 @@ export function AppProvider({ children }) {
         workspaceRef.current = workspace;
         dispatch({ type: ACTIONS.AUTH_READY, payload: { user, workspace, data } });
       } catch (error) {
-        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
+        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error), code: isAccessRevoked(error) ? 'access_revoked' : null });
       } finally {
         if (loadingUserId === user.id) loadingUserId = null;
       }
@@ -386,7 +402,7 @@ export function AppProvider({ children }) {
       session = data?.session;
     } catch (error) {
       // Sem conseguir ler a sessão (ex.: offline), continua no erro em vez de cair na página pública.
-      dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
+      dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error), code: isAccessRevoked(error) ? 'access_revoked' : null });
       return;
     }
     await loadUserRef.current?.(session?.user || null);
@@ -675,18 +691,6 @@ export function AppProvider({ children }) {
     return supabase.auth.signInWithPassword({ email, password });
   }, []);
 
-  const signUp = useCallback((email, password, fullName) => {
-    if (!supabase) return Promise.reject(new Error('Supabase não está configurado.'));
-    return supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: authRedirectUrl,
-      },
-    });
-  }, []);
-
   const requestPasswordReset = useCallback((email) => {
     if (!supabase) return Promise.reject(new Error('Supabase não está configurado.'));
     return supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl });
@@ -695,7 +699,10 @@ export function AppProvider({ children }) {
   const updatePassword = useCallback(async (password) => {
     if (!supabase) throw new Error('Supabase não está configurado.');
     const result = await supabase.auth.updateUser({ password });
-    if (!result?.error) dispatch({ type: ACTIONS.AUTH_SET_RECOVERY, payload: false });
+    if (!result?.error) {
+      dispatch({ type: ACTIONS.AUTH_SET_RECOVERY, payload: false });
+      dispatch({ type: ACTIONS.AUTH_SET_MUST_SET_PASSWORD, payload: false });
+    }
     return result;
   }, []);
 
@@ -737,7 +744,6 @@ export function AppProvider({ children }) {
     confirmLocalSave,
     reportLocalSaveError,
     signIn,
-    signUp,
     requestPasswordReset,
     updatePassword,
     signOut,

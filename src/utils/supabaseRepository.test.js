@@ -112,3 +112,12 @@ describe('throwIfError', () => {
     expect(friendlyDbError(thrown)).toBe('O servidor recusou a solicitação. Tente de novo com outro texto.');
   });
 });
+
+describe('friendlyDbError: convite e revogação', () => {
+  it('access_revoked (42501) tem mensagem própria', () => {
+    expect(friendlyDbError({ code: '42501', message: 'access_revoked' })).toBe('Seu acesso ao Projeta foi revogado. Fale com o administrador.')
+  })
+  it('invite_required', () => {
+    expect(friendlyDbError({ code: '42501', message: 'invite_required' })).toBe('O acesso ao Projeta é feito por convite.')
+  })
+})
