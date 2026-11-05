@@ -15,7 +15,7 @@ import {
 } from './helpers.js';
 
 const OVERVIEW_KEYS = [
-  'users_total', 'users_active', 'users_revoked',
+  'users_total', 'users_active', 'users_invited', 'users_revoked',
   'invites_pending', 'invites_expired', 'invites_accepted', 'invites_revoked', 'acceptance_rate',
   'active_7d', 'active_30d',
   'projects', 'tasks', 'anomalies', 'minutes', 'actions_open',
@@ -361,6 +361,177 @@ describe('plataforma só por convite, acesso revogável e RPCs do admin', () => 
       } finally {
         await setAccess(B.id, 'active');
       }
+    });
+  });
+
+  // ─── aceite do convite, reconvite e convite revogado (correção 1) ─────────
+
+  describe('aceite do convite e convidados que ainda não entraram', () => {
+    const inviteOf = async (userId) => {
+      const { data, error } = await admin.from('platform_invites').select('*').eq('accepted_user_id', userId);
+      if (error) throw new Error(`inviteOf: ${error.code ?? ''} ${error.message}`);
+      return data;
+    };
+    const accessOf = async (userId) => {
+      const { data, error } = await admin.from('user_access').select('*').eq('user_id', userId).single();
+      if (error) throw new Error(`accessOf: ${error.code ?? ''} ${error.message}`);
+      return data;
+    };
+    const statusInList = async (userId) => {
+      const { data, error } = await ADM.client.rpc('admin_list_users');
+      if (error) throw new Error(`admin_list_users: ${error.code ?? ''} ${error.message}`);
+      return data.find((r) => r.user_id === userId)?.status;
+    };
+
+    it('convidado aparece como invited até o primeiro acesso, depois active', async () => {
+      const N = await createTestUser('adm-invited');
+      expect(await statusInList(N.id)).toBe('invited');
+      const before = await ADM.client.rpc('admin_overview');
+      expect(before.data.users_invited).toBeGreaterThanOrEqual(1);
+
+      expect((await N.client.rpc('ensure_personal_workspace').single()).error).toBeNull();
+      expect(await statusInList(N.id)).toBe('active');
+      const after = await ADM.client.rpc('admin_overview');
+      expect(after.data.users_invited).toBe(before.data.users_invited - 1);
+      expect(after.data.users_active).toBe(before.data.users_active + 1);
+      expect(after.data.users_total).toBe(
+        after.data.users_active + after.data.users_invited + after.data.users_revoked,
+      );
+    });
+
+    it('revogar o convite pendente revoga o convidado que já tem usuário', async () => {
+      const M = await createTestUser('adm-conv-revogado');
+      const [invite] = await inviteOf(M.id);
+      expect(invite.status).toBe('pending');
+      const { error } = await admin
+        .from('platform_invites')
+        .update({ status: 'revoked', revoked_at: new Date().toISOString() })
+        .eq('id', invite.id);
+      expect(error).toBeNull();
+
+      const access = await accessOf(M.id);
+      expect(access.status).toBe('revoked');
+      expect(access.revoked_at).not.toBeNull();
+      const rpc = await M.client.rpc('ensure_personal_workspace').single();
+      expect(rpc.error?.code).toBe('42501');
+      expect(rpc.error?.message).toBe('access_revoked');
+      expect(await statusInList(M.id)).toBe('revoked');
+    });
+
+    it('reconvite de quem nunca entrou: o convite novo é aceito no primeiro acesso', async () => {
+      const R = await createTestUser('adm-reconvite');
+      const [first] = await inviteOf(R.id);
+      await admin
+        .from('platform_invites')
+        .update({ status: 'revoked', revoked_at: new Date().toISOString() })
+        .eq('id', first.id);
+      expect((await accessOf(R.id)).status).toBe('revoked');
+
+      // Novo convite pendente para o mesmo e-mail (o GoTrue só reenvia: UPDATE, sem INSERT).
+      const second = await createInvite(R.email);
+      expect(second.accepted_user_id).toBeNull();
+      expect(await statusInList(R.id)).toBe('invited');
+
+      const ws = await R.client.rpc('ensure_personal_workspace').single();
+      expect(ws.error).toBeNull();
+      const { data: accepted } = await admin.from('platform_invites').select('*').eq('id', second.id).single();
+      expect(accepted.status).toBe('accepted');
+      expect(accepted.accepted_user_id).toBe(R.id);
+      expect(accepted.accepted_at).not.toBeNull();
+      const access = await accessOf(R.id);
+      expect(access.status).toBe('active');
+      expect(access.invite_id).toBe(second.id);
+      expect(access.revoked_at).toBeNull();
+      expect(await statusInList(R.id)).toBe('active');
+    });
+
+    it('revogação pelo admin não é desfeita por um convite antigo ainda pendente', async () => {
+      const V = await createTestUser('adm-rev-antigo');
+      await setAccess(V.id, 'revoked');
+      const rpc = await V.client.rpc('ensure_personal_workspace').single();
+      expect(rpc.error?.message).toBe('access_revoked');
+      const [invite] = await inviteOf(V.id);
+      expect(invite.status).toBe('pending');
+      expect((await accessOf(V.id)).status).toBe('revoked');
+    });
+
+    it('convite expirado não completa o primeiro acesso', async () => {
+      const E = await createTestUser('adm-conv-expirado');
+      const [invite] = await inviteOf(E.id);
+      await admin
+        .from('platform_invites')
+        .update({ expires_at: new Date(Date.now() - 60_000).toISOString() })
+        .eq('id', invite.id);
+      const rpc = await E.client.rpc('ensure_personal_workspace').single();
+      expect(rpc.error?.code).toBe('42501');
+      expect(rpc.error?.message).toBe('access_revoked');
+      const [after] = await inviteOf(E.id);
+      expect(after.status).toBe('pending');
+    });
+
+    it('quem já aceitou não é afetado por expiração ou revogação do convite aceito', async () => {
+      const K = await createTestUser('adm-ja-aceito');
+      expect((await K.client.rpc('ensure_personal_workspace').single()).error).toBeNull();
+      const [invite] = await inviteOf(K.id);
+      expect(invite.status).toBe('accepted');
+      await admin
+        .from('platform_invites')
+        .update({ status: 'revoked', expires_at: new Date(Date.now() - 60_000).toISOString() })
+        .eq('id', invite.id);
+      expect((await accessOf(K.id)).status).toBe('active');
+      expect((await K.client.rpc('ensure_personal_workspace').single()).error).toBeNull();
+    });
+
+    it('usuário sem convite ligado (como o dono do backfill) continua entrando', async () => {
+      const O = await createTestUser('adm-sem-convite-ligado');
+      const del = await admin.from('platform_invites').delete().eq('email', O.email);
+      expect(del.error).toBeNull();
+      const access = await accessOf(O.id);
+      expect(access.invite_id).toBeNull();
+      expect(access.status).toBe('active');
+      expect((await O.client.rpc('ensure_personal_workspace').single()).error).toBeNull();
+      expect(await statusInList(O.id)).toBe('active');
+    });
+
+    it('depois do primeiro acesso o convidado entra de novo e troca a senha', async () => {
+      const S = await createTestUser('adm-senha');
+      expect((await S.client.rpc('ensure_personal_workspace').single()).error).toBeNull();
+
+      const again = await S.client.auth.signInWithPassword({ email: S.email, password: S.password });
+      expect(again.error).toBeNull();
+      const newPassword = `${S.password}-Nova9`;
+      const upd = await S.client.auth.updateUser({ password: newPassword });
+      expect(upd.error).toBeNull();
+
+      const fresh = anonClient();
+      const login = await fresh.auth.signInWithPassword({ email: S.email, password: newPassword });
+      expect(login.error).toBeNull();
+      expect(login.data.user.id).toBe(S.id);
+      expect((await fresh.rpc('ensure_personal_workspace').single()).error).toBeNull();
+    });
+
+    it('e-mail com maiúsculas no cadastro casa com o convite minúsculo', async () => {
+      const label = 'adm-caixa';
+      const U = await createTestUser(label, { signupEmail: testEmail(label).toUpperCase() });
+      const [invite] = await inviteOf(U.id);
+      expect(invite?.email).toBe(testEmail(label));
+      expect((await accessOf(U.id)).status).toBe('active');
+      expect((await U.client.rpc('ensure_personal_workspace').single()).error).toBeNull();
+    });
+
+    it('admin revogado deixa de ser admin', async () => {
+      await setAccess(ADM.id, 'revoked');
+      try {
+        const am = await ADM.client.rpc('am_i_platform_admin');
+        expect(am.data).toBe(false);
+        const o = await ADM.client.rpc('admin_overview');
+        expect(o.error?.code).toBe('42501');
+        const inv = await ADM.client.from('platform_invites').select('id');
+        expect(inv.data).toEqual([]);
+      } finally {
+        await setAccess(ADM.id, 'active');
+      }
+      expect((await ADM.client.rpc('am_i_platform_admin')).data).toBe(true);
     });
   });
 });

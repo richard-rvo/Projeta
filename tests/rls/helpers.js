@@ -74,19 +74,20 @@ function must({ data, error }, what) {
   return data;
 }
 
-export async function createTestUser(label) {
+/** signupEmail permite cadastrar com outra caixa (o convite é sempre minúsculo). */
+export async function createTestUser(label, { signupEmail } = {}) {
   const url = guardedEnv();
   const admin = adminClient();
   const email = testEmail(label);
   // Cadastro só por convite: o trigger em auth.users exige um convite pendente.
   await createInvite(email);
-  const res = await admin.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true });
+  const res = await admin.auth.admin.createUser({ email: signupEmail ?? email, password: PASSWORD, email_confirm: true });
   const id = must(res, 'createUser').user.id;
   created.users.push(id);
 
   const client = createClient(url, process.env.RLS_SUPABASE_ANON_KEY, opts);
   must(await client.auth.signInWithPassword({ email, password: PASSWORD }), 'signIn');
-  return { id, email, client };
+  return { id, email, password: PASSWORD, client };
 }
 
 export async function bootstrapWorkspace(user) {
