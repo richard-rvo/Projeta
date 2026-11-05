@@ -242,6 +242,19 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
     if (!target) throw new HttpError(404, 'user_not_found', MSG.userNotFound);
     if (target.is_admin) throw new HttpError(400, 'cannot_revoke_admin', MSG.adminRevoke);
     await banAndRevoke(userId, callerId);
+    // Convidado que ainda não entrou: os convites pendentes dele também caem, senão seguiriam
+    // na lista como "Pendente" e reenviáveis. Mesma ligação do banco: accepted_user_id ou e-mail.
+    const revokedAt = new Date().toISOString();
+    const pendingOf = [['accepted_user_id', userId]];
+    if (target.email) pendingOf.push(['email', String(target.email).toLowerCase()]);
+    for (const [column, value] of pendingOf) {
+      const { error: invErr } = await adminClient
+        .from('platform_invites')
+        .update({ status: 'revoked', revoked_at: revokedAt })
+        .eq(column, value)
+        .eq('status', 'pending');
+      if (invErr) throw new HttpError(500, 'internal', MSG.internal);
+    }
     return { userId, status: 'revoked' };
   }
 

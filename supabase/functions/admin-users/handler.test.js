@@ -330,6 +330,27 @@ describe('admin-users: revoke_user / restore_user', () => {
     expect(t.user_access[0].revoked_at).toBeTruthy();
     expect(bans).toEqual([{ id: USER, attrs: { ban_duration: '876000h' } }]);
   });
+  it('revoga usuário convidado: também revoga os convites pendentes dele (não ficam como "Pendente")', async () => {
+    const linked = { id: '33333333-3333-4333-8333-333333333331', email: 'nunca@x.com', status: 'pending', sent_count: 1, note: '', accepted_user_id: NEVER, accepted_at: null, expires_at: '2099-01-01T00:00:00Z' };
+    const byEmail = { id: '33333333-3333-4333-8333-333333333332', email: 'nunca@x.com', status: 'pending', sent_count: 1, note: '', accepted_user_id: null, accepted_at: null, expires_at: '2099-01-01T00:00:00Z' };
+    const other = { id: '33333333-3333-4333-8333-333333333333', email: 'outra@x.com', status: 'pending', sent_count: 1, note: '', accepted_user_id: null, accepted_at: null, expires_at: '2099-01-01T00:00:00Z' };
+    const { call, t, bans } = setup({ tables: { platform_invites: [linked, byEmail, other] } });
+    const r = await call({ action: 'revoke_user', userId: NEVER });
+    expect(r.status).toBe(200);
+    expect(t.user_access[0]).toMatchObject({ user_id: NEVER, status: 'revoked' });
+    expect(bans).toEqual([{ id: NEVER, attrs: { ban_duration: '876000h' } }]);
+    expect(t.platform_invites[0]).toMatchObject({ status: 'revoked' });
+    expect(t.platform_invites[0].revoked_at).toBeTruthy();
+    expect(t.platform_invites[1]).toMatchObject({ status: 'revoked' });
+    expect(t.platform_invites[1].revoked_at).toBeTruthy();
+    expect(t.platform_invites[2]).toMatchObject({ status: 'pending' });
+  });
+  it('revoga usuário ativo: convite aceito continua aceito', async () => {
+    const acc = { id: '33333333-3333-4333-8333-333333333334', email: 'ana@x.com', status: 'accepted', sent_count: 1, note: '', accepted_user_id: USER, accepted_at: '2026-01-01T00:00:00Z', expires_at: '2020-01-01T00:00:00Z' };
+    const { call, t } = setup({ tables: { platform_invites: [acc] } });
+    expect((await call({ action: 'revoke_user', userId: USER })).status).toBe(200);
+    expect(t.platform_invites[0].status).toBe('accepted');
+  });
   it('usuário desconhecido -> 404', async () => {
     const { call } = setup();
     expect((await call({ action: 'revoke_user', userId: '00000000-0000-4000-8000-0000000000ff' })).status).toBe(404);
