@@ -38,7 +38,7 @@ export function projectFromRow(row) {
   };
 }
 
-function projectToRow(project, workspaceId) {
+export function projectToRow(project, workspaceId) {
   const calendars = calendarsOf(project);
   return {
     id: project.id || generateId(),
@@ -82,7 +82,7 @@ export function taskFromRow(row) {
   };
 }
 
-function taskToRow(task, workspaceId) {
+export function taskToRow(task, workspaceId) {
   return {
     id: task.id || generateId(),
     workspace_id: workspaceId,
@@ -126,7 +126,7 @@ export function anomalyFromRow(row) {
   };
 }
 
-function anomalyToRow(anomaly, workspaceId) {
+export function anomalyToRow(anomaly, workspaceId) {
   const {
     id, projectId, taskId, title, description, status, severity, photos,
     occurredAt, resolvedAt, ...metadata
@@ -156,20 +156,9 @@ export async function ensureWorkspace(user) {
   }, { onConflict: 'id' });
   throwIfError(profile);
 
-  const existing = await client
-    .from('workspaces')
-    .select('*')
-    .order('created_at', { ascending: true })
-    .limit(1);
-  const workspaces = throwIfError(existing) || [];
-  if (workspaces[0]) return workspaces[0];
-
-  const created = await client
-    .from('workspaces')
-    .insert({ name: `${user.user_metadata?.full_name || 'Meu'} workspace`, owner_id: user.id })
-    .select('*')
-    .single();
-  return throwIfError(created);
+  // O workspace pessoal nasce no servidor (SECURITY DEFINER): o cliente não
+  // insere em workspaces e nunca cai num workspace alheio só por ser mais antigo.
+  return throwIfError(await client.rpc('ensure_personal_workspace').single());
 }
 
 export async function updateWorkspace(workspaceId, patch) {
