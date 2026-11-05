@@ -29,6 +29,11 @@ describe('AuthPage por convite', () => {
     expect(container.textContent).not.toMatch(/Criar conta|Começar agora/)
     expect(container.textContent).toContain('O acesso ao Projeta é feito por convite.')
   })
+  it('login mostra o aviso vindo do link (notice) como alerta', () => {
+    const msg = 'O link do convite expirou. Peça um novo convite ao administrador ou use "Esqueci minha senha".'
+    mount(<AuthPage mode="login" notice={msg} onModeChange={() => {}} onBack={() => {}} signIn={() => {}} />)
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(msg)
+  })
   it('tela de definir senha valida e chama updatePassword', async () => {
     const updatePassword = vi.fn().mockResolvedValue({ error: null })
     mount(<AuthPage mode="invite" updatePassword={updatePassword} />)

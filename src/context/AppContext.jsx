@@ -7,6 +7,7 @@ import {
   deleteTask as dbDeleteTask, saveAnomaly as dbSaveAnomaly,
   deleteAnomaly as dbDeleteAnomaly, updateWorkspace as dbUpdateWorkspace,
   verifyWorkspaceData, friendlyDbError, toFriendlyError, isAccessRevoked,
+  ACCESS_REVOKED_MESSAGE,
 } from '../utils/supabaseRepository';
 
 const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
@@ -18,6 +19,25 @@ export function isInviteHash(hash) {
   return new URLSearchParams(String(hash || '').replace(/^#/, '')).get('type') === 'invite';
 }
 const BOOT_INVITE = typeof window !== 'undefined' && isInviteHash(window.location.hash);
+
+export const INVITE_EXPIRED_MESSAGE = 'O link do convite expirou. Peça um novo convite ao administrador ou use "Esqueci minha senha".';
+
+/* Link de convite/recuperação recusado pelo Auth volta com error_code no hash
+   (ex.: #error=access_denied&error_code=otp_expired). Vira aviso na tela de login. */
+export function authHashNotice(hash) {
+  const code = new URLSearchParams(String(hash || '').replace(/^#/, '')).get('error_code');
+  if (code === 'otp_expired') return INVITE_EXPIRED_MESSAGE;
+  if (code === 'user_banned') return ACCESS_REVOKED_MESSAGE;
+  return null;
+}
+
+/** Lê o erro do hash e o tira da URL, para não reaparecer num recarregamento. */
+export function readBootAuthNotice(win) {
+  const notice = authHashNotice(win?.location?.hash);
+  if (notice) win.history.replaceState(win.history.state, '', win.location.pathname + win.location.search);
+  return notice;
+}
+const BOOT_AUTH_NOTICE = typeof window !== 'undefined' ? readBootAuthNotice(window) : null;
 
 const initialState = {
   projects: [],
@@ -48,6 +68,9 @@ const initialState = {
   /* Shell: o rail fica em 64px e sobrepõe ao passar o mouse. Fixá-lo
      reserva a largura de verdade no layout. */
   railPinned: false,
+
+  /* Aviso do link de acesso (hash de erro na abertura), mostrado na tela de login. */
+  authNotice: null,
 
   /* Histórico de edição de tarefas. Não é persistido: desfazer vale
      para a sessão, como em qualquer editor. */
@@ -158,6 +181,7 @@ export function reducer(state, action) {
         projects: action.payload.data.projects,
         tasks: action.payload.data.tasks,
         anomalies: action.payload.data.anomalies,
+        authNotice: null,
       };
     case ACTIONS.AUTH_SET_RECOVERY:
       return { ...state, auth: { ...state.auth, recovery: Boolean(action.payload) } };
@@ -336,11 +360,13 @@ function sameCollection(a, b) {
 }
 
 export function AppProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState, (base) => (
-    BOOT_INVITE || (typeof window !== 'undefined' && isInviteHash(window.location.hash))
-      ? { ...base, auth: { ...base.auth, mustSetPassword: true } }
-      : base
-  ));
+  const [state, dispatch] = useReducer(reducer, initialState, (base) => {
+    const authNotice = BOOT_AUTH_NOTICE || (typeof window !== 'undefined' ? readBootAuthNotice(window) : null);
+    const withNotice = authNotice ? { ...base, authNotice } : base;
+    return BOOT_INVITE || (typeof window !== 'undefined' && isInviteHash(window.location.hash))
+      ? { ...withNotice, auth: { ...withNotice.auth, mustSetPassword: true } }
+      : withNotice;
+  });
 
   /* Espelhos do estado para os callbacks estáveis. Sem eles, um
      useCallback com deps [] leria sempre o primeiro render. */
