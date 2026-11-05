@@ -44,7 +44,7 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
       const result = isSignup ? await signUp(form.email.trim(), form.password, form.name.trim()) : await signIn(form.email.trim(), form.password);
       if (result?.error) throw result.error;
       if (isSignup && !result?.data?.session) setMessage('Conta criada. Confira seu e-mail para confirmar o acesso.');
-    } catch (submitError) { setError(isReset ? authErrorMessage(submitError) : (submitError?.message || 'Não foi possível concluir o acesso.')); } finally { setBusy(false); }
+    } catch (submitError) { setError(authErrorMessage(submitError)); } finally { setBusy(false); }
   };
 
   const goTo = (next) => { setError(''); setMessage(''); onModeChange(next); };
