@@ -92,6 +92,7 @@ export default function ProjectDialog({ open, onOpenChange, project, onSave }) {
           <Field label="Nome do projeto" required>
             <Input
               autoFocus
+              maxLength={200}
               value={form.name}
               onChange={set('name')}
               onKeyDown={(event) => event.key === 'Enter' && submit()}
@@ -102,6 +103,7 @@ export default function ProjectDialog({ open, onOpenChange, project, onSave }) {
           <Field label="Descrição">
             <Textarea
               rows={3}
+              maxLength={5000}
               value={form.description}
               onChange={set('description')}
               placeholder="Escopo e objetivo principal do projeto"

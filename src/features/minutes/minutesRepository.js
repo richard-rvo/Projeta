@@ -5,6 +5,9 @@ import { MINUTE_TEMPLATES } from './templates'
 
 const pad = (n) => String(n).padStart(2, '0')
 
+/** Limites de `meeting_minutes` (CHECK char_length). O RPC grava a ata inteira: um campo longo travaria todo save. */
+export const MINUTE_LIMITS = { title: 200, location: 200, participants: 2000 }
+
 export function defaultMinuteTitle(date = new Date()) {
   return `Reunião de ${pad(date.getDate())}/${pad(date.getMonth() + 1)}`
 }
@@ -65,10 +68,10 @@ export function minuteToRpcArgs(minute, workspaceId) {
       id: minute.id,
       workspace_id: workspaceId,
       project_id: minute.projectId,
-      title: minute.title || '',
+      title: (minute.title || '').slice(0, MINUTE_LIMITS.title),
       meeting_at: minute.meetingAt || null,
-      location: minute.location || '',
-      participants: minute.participants || '',
+      location: (minute.location || '').slice(0, MINUTE_LIMITS.location),
+      participants: (minute.participants || '').slice(0, MINUTE_LIMITS.participants),
       template: minute.template || 'blank',
       content,
       content_text: extractPlainText(content),

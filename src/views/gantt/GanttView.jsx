@@ -70,6 +70,7 @@ const PRINT_PAD_AFTER = 5;
 const MIN_VISIBLE_TIMELINE_PAD_DAYS = 14;
 const SLOW_EDIT_CLICK_DELAY_MS = 450;
 const DOUBLE_CLICK_GUARD_MS = 260;
+const TASK_NAME_MAX = 500; // CHECK char_length(tasks.name) <= 500
 const DENSITY_KEY = 'projeta_gantt_density';
 const PROJECT_SUMMARY_KEY = 'projeta_gantt_project_summary';
 const PROJECT_SUMMARY_ID = '__project-summary__';
@@ -97,7 +98,8 @@ function taskNamesFromPaste(text) {
   return String(text || '')
     .split(/\r?\n/)
     .map(cleanPastedTaskName)
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((name) => name.slice(0, TASK_NAME_MAX));
 }
 
 function buildProjectSummaryTask(project, tasks, calendarFor) {
@@ -1551,6 +1553,7 @@ export default function GanttView() {
                       ref={newTaskRef}
                       className="gantt-new-input"
                       placeholder="Nova tarefa — Enter para adicionar"
+                      maxLength={TASK_NAME_MAX}
                       value={newTaskName}
                       onChange={(e) => setNewTaskName(e.target.value)}
                       onPaste={handlePasteNewTasks}

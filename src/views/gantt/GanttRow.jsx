@@ -362,6 +362,7 @@ function CellEditor({ col, ctx, value, inputRef, onChange, onCommit, onCancel })
             : 'text'
       }
       value={value}
+      maxLength={col.maxLength}
       title={col.id === 'duration' ? ctx.durationInputHint : undefined}
       onChange={(e) => onChange(e.target.value)}
       onFocus={(e) => {

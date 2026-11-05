@@ -6,9 +6,10 @@ import { buildNewTask } from '../../utils/taskFactory'
 import { formatDateShort, today } from '../../utils/schedule'
 import { isActionOverdue } from './minuteDoc'
 
+// tasks.name aceita 500 caracteres; a descrição da ação, até 1000.
 export function createTaskFromAction(project, action, order) {
   return buildNewTask(project, {
-    name: action.description,
+    name: (action.description || '').slice(0, 500),
     order,
     startDay: action.dueDate ?? undefined,
     workingDays: 1,
