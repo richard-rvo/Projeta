@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { Suspense, useContext, useState } from 'react';
 import { AppContext } from './context/AppContext';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import AppRail from './components/shell/AppRail';
@@ -13,8 +13,11 @@ import PageReports from './pages/PageReports';
 import PageSettings from './pages/PageSettings';
 import PublicLanding from './pages/PublicLanding';
 import AuthPage from './pages/AuthPage';
+import LazyErrorBoundary from './components/LazyErrorBoundary';
 import WorkspaceLoadError from './components/shell/WorkspaceLoadError';
 import AccessRevoked from './components/shell/AccessRevoked';
+
+const PageAdmin = React.lazy(() => import('./features/admin/PageAdmin'));
 
 /**
  * Contêiner de rolagem para views que são documentos, não superfícies.
@@ -75,6 +78,13 @@ function App() {
         return <PageScroll><PageReports /></PageScroll>;
       case 'pageSettings':
         return <PageScroll><PageSettings /></PageScroll>;
+      case 'pageAdmin':
+        if (!state.auth.isPlatformAdmin) return null;
+        return (
+          <LazyErrorBoundary>
+            <Suspense fallback={null}><PageAdmin /></Suspense>
+          </LazyErrorBoundary>
+        );
       case 'pagePortfolio':
       default:
         return <PagePortfolio />;

@@ -1,5 +1,6 @@
 import React, { createContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { amIPlatformAdmin } from '../features/admin/adminRepository';
 import {
   ensureWorkspace, loadWorkspaceData, saveProject as dbSaveProject,
   deleteProject as dbDeleteProject, saveTask as dbSaveTask,
@@ -30,6 +31,7 @@ const initialState = {
     recovery: false,
     mustSetPassword: false,
     errorCode: null,
+    isPlatformAdmin: false,
   },
   activeProjectId: null,
   activeProjectTab: 'overview',   // 'overview' | 'gantt' | 'kanban' | 'scurve' | 'anomalies'
@@ -74,6 +76,7 @@ export const ACTIONS = {
   AUTH_RETRY: 'AUTH_RETRY',
   AUTH_SIGNED_OUT: 'AUTH_SIGNED_OUT',
   AUTH_WORKSPACE_UPDATED: 'AUTH_WORKSPACE_UPDATED',
+  AUTH_SET_ADMIN: 'AUTH_SET_ADMIN',
   ADD_ANOMALY: 'ADD_ANOMALY',
   UPDATE_ANOMALY: 'UPDATE_ANOMALY',
   REMOVE_ANOMALY: 'REMOVE_ANOMALY',
@@ -151,7 +154,7 @@ export function reducer(state, action) {
     case ACTIONS.AUTH_READY:
       return {
         ...state,
-        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null, recovery: state.auth.recovery, mustSetPassword: state.auth.mustSetPassword, errorCode: null },
+        auth: { status: 'ready', user: action.payload.user, workspace: action.payload.workspace, error: null, recovery: state.auth.recovery, mustSetPassword: state.auth.mustSetPassword, errorCode: null, isPlatformAdmin: Boolean(state.auth.isPlatformAdmin) },
         projects: action.payload.data.projects,
         tasks: action.payload.data.tasks,
         anomalies: action.payload.data.anomalies,
@@ -175,6 +178,8 @@ export function reducer(state, action) {
         projects: [], tasks: [], anomalies: [], activeProjectId: null,
         activePage: 'pagePortfolio',
       };
+    case ACTIONS.AUTH_SET_ADMIN:
+      return { ...state, auth: { ...state.auth, isPlatformAdmin: Boolean(action.payload) } };
     case ACTIONS.AUTH_WORKSPACE_UPDATED:
       return { ...state, auth: { ...state.auth, workspace: action.payload } };
     case ACTIONS.ADD_ANOMALY:
@@ -390,6 +395,17 @@ export function AppProvider({ children }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  /* Administrador da plataforma: consulta após o login; falha = não é admin. */
+  const authUserId = state.auth.user?.id;
+  useEffect(() => {
+    if (!authUserId) return undefined;
+    let cancelled = false;
+    amIPlatformAdmin()
+      .catch(() => false)
+      .then((isAdmin) => { if (!cancelled) dispatch({ type: ACTIONS.AUTH_SET_ADMIN, payload: isAdmin }); });
+    return () => { cancelled = true; };
+  }, [authUserId]);
 
   /* Tela de erro do carregamento: refaz a carga para o usuário da sessão atual. */
   const retryLoad = useCallback(async () => {
