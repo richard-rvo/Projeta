@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
-import { reducer, ACTIONS } from './AppContext'
+import { reducer, ACTIONS, isInviteHash } from './AppContext'
 
 describe('reducer: abrir ata a partir da Visão Geral', () => {
   it('OPEN_MINUTE guarda a ata e troca para a aba Atas; CLEAR limpa', () => {
@@ -25,5 +25,29 @@ describe('reducer: falha ao carregar o workspace', () => {
     const failed = reducer(loaded, { type: ACTIONS.AUTH_ERROR, payload: 'x' })
     const s = reducer(failed, { type: ACTIONS.AUTH_RETRY })
     expect(s.auth).toMatchObject({ status: 'loading', error: null })
+  })
+})
+
+describe('reducer: convite e acesso revogado', () => {
+  const base = { auth: { status: 'ready', user: { id: 'u1' }, workspace: null, error: null, recovery: false, mustSetPassword: true, errorCode: null }, projects: [], tasks: [], anomalies: [] }
+  it('AUTH_READY preserva mustSetPassword', () => {
+    const s = reducer(base, { type: ACTIONS.AUTH_READY, payload: { user: { id: 'u1' }, workspace: { id: 'w' }, data: { projects: [], tasks: [], anomalies: [] } } })
+    expect(s.auth.mustSetPassword).toBe(true)
+  })
+  it('AUTH_SET_MUST_SET_PASSWORD limpa o flag', () => {
+    expect(reducer(base, { type: ACTIONS.AUTH_SET_MUST_SET_PASSWORD, payload: false }).auth.mustSetPassword).toBe(false)
+  })
+  it('AUTH_ERROR guarda o código access_revoked', () => {
+    const s = reducer(base, { type: ACTIONS.AUTH_ERROR, payload: 'x', code: 'access_revoked' })
+    expect(s.auth).toMatchObject({ status: 'error', errorCode: 'access_revoked' })
+  })
+  it('AUTH_ERROR mantém mustSetPassword, exceto em access_revoked', () => {
+    expect(reducer(base, { type: ACTIONS.AUTH_ERROR, payload: 'x' }).auth.mustSetPassword).toBe(true)
+    expect(reducer(base, { type: ACTIONS.AUTH_ERROR, payload: 'x', code: 'access_revoked' }).auth.mustSetPassword).toBe(false)
+  })
+  it('isInviteHash reconhece type=invite', () => {
+    expect(isInviteHash('#access_token=a&type=invite')).toBe(true)
+    expect(isInviteHash('#type=recovery')).toBe(false)
+    expect(isInviteHash('')).toBe(false)
   })
 })

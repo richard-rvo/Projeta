@@ -7,15 +7,15 @@ import { authErrorMessage, isTransientAuthError } from '@/utils/authErrors';
 
 const FORGOT_MESSAGE = 'Se houver uma conta com este e-mail, enviamos um link para redefinir a senha.';
 
-export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn, signUp, requestPasswordReset, updatePassword }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn, requestPasswordReset, updatePassword }) {
+  const [form, setForm] = useState({ email: '', password: '', confirm: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const isSignup = mode === 'signup';
   const isForgot = mode === 'forgot';
-  const isReset = mode === 'reset';
+  const isInvite = mode === 'invite';
+  const isReset = mode === 'reset' || isInvite;
 
   const submit = async (event) => {
     event.preventDefault(); setError(''); setMessage('');
@@ -29,7 +29,7 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
       } catch (submitError) { setError(authErrorMessage(submitError)); } finally { setBusy(false); }
       return;
     }
-    if (isSignup || isReset) {
+    if (isReset) {
       const passwordError = validatePassword(form.password);
       if (passwordError) { setError(passwordError); return; }
     }
@@ -41,9 +41,8 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
         if (result?.error) setError(authErrorMessage(result.error));
         return;
       }
-      const result = isSignup ? await signUp(form.email.trim(), form.password, form.name.trim()) : await signIn(form.email.trim(), form.password);
+      const result = await signIn(form.email.trim(), form.password);
       if (result?.error) throw result.error;
-      if (isSignup && !result?.data?.session) setMessage('Conta criada. Confira seu e-mail para confirmar o acesso.');
     } catch (submitError) { setError(authErrorMessage(submitError)); } finally { setBusy(false); }
   };
 
@@ -73,18 +72,11 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
             </button>
           </div>
 
-          <p className="text-micro font-semibold uppercase tracking-[0.22em] text-brand">{isSignup ? 'Novo workspace' : isForgot || isReset ? 'Recuperação de acesso' : 'Acesso seguro'}</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em]">{isSignup ? 'Crie sua conta' : isForgot ? 'Esqueci minha senha' : isReset ? 'Nova senha' : 'Bem-vindo de volta'}</h2>
-          <p className="mt-2 text-sm leading-6 text-text-2">{isSignup ? 'Seu primeiro workspace será criado automaticamente.' : isForgot ? 'Informe seu e-mail para receber um link de redefinição.' : isReset ? 'Escolha uma nova senha para acessar sua conta.' : 'Acesse seus projetos e continue de onde parou.'}</p>
+          <p className="text-micro font-semibold uppercase tracking-[0.22em] text-brand">{isInvite ? 'Convite aceito' : isForgot || isReset ? 'Recuperação de acesso' : 'Acesso seguro'}</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em]">{isInvite ? 'Bem-vindo ao Projeta — defina sua senha' : isForgot ? 'Esqueci minha senha' : isReset ? 'Nova senha' : 'Bem-vindo de volta'}</h2>
+          <p className="mt-2 text-sm leading-6 text-text-2">{isInvite ? 'Escolha a senha que você usará para entrar no Projeta.' : isForgot ? 'Informe seu e-mail para receber um link de redefinição.' : isReset ? 'Escolha uma nova senha para acessar sua conta.' : 'Acesse seus projetos e continue de onde parou.'}</p>
 
           <form onSubmit={submit} className="mt-7 flex flex-col gap-4">
-            {isSignup && (
-              <label className="flex flex-col gap-1.5 text-xs text-text-2">
-                Nome
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Seu nome" />
-              </label>
-            )}
-
             {!isReset && (
             <label className="flex flex-col gap-1.5 text-xs text-text-2">
               E-mail
@@ -96,7 +88,7 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
             <label className="flex flex-col gap-1.5 text-xs text-text-2">
               {isReset ? 'Nova senha' : 'Senha'}
               <div className="relative">
-                <Input type={showPassword ? 'text' : 'password'} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={isSignup || isReset ? 'Mínimo de 10 caracteres, com letras e números' : 'Sua senha'} className="pr-10" />
+                <Input type={showPassword ? 'text' : 'password'} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={isReset ? 'Mínimo de 10 caracteres, com letras e números' : 'Sua senha'} className="pr-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center px-3 text-text-3 hover:text-text-1" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
@@ -104,7 +96,7 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
             </label>
             )}
 
-            {!isSignup && !isForgot && !isReset && (
+            {!isForgot && !isReset && (
               <button type="button" onClick={() => goTo('forgot')} className="-mt-2 self-start text-xs font-medium text-brand hover:text-brand-hover">
                 Esqueci minha senha
               </button>
@@ -121,17 +113,16 @@ export default function AuthPage({ mode = 'login', onModeChange, onBack, signIn,
             {message && <p role="status" className="rounded-[var(--radius-control)] border border-brand/30 bg-brand-soft px-3 py-2 text-xs text-brand">{message}</p>}
 
             <Button type="submit" disabled={busy} className="mt-2 h-11">
-              {busy ? 'Aguarde...' : isSignup ? 'Criar conta' : isForgot ? 'Enviar link' : isReset ? 'Salvar nova senha' : 'Entrar'}
+              {busy ? 'Aguarde...' : isForgot ? 'Enviar link' : isInvite ? 'Definir senha e entrar' : isReset ? 'Salvar nova senha' : 'Entrar'}
               <ArrowRight data-icon="inline-end" />
             </Button>
           </form>
 
           {!isReset && (
             <p className="mt-6 text-center text-xs text-text-3">
-              {isForgot ? 'Lembrou a senha?' : isSignup ? 'Já possui uma conta?' : 'Ainda não possui uma conta?'}{' '}
-              <button type="button" onClick={() => goTo(isSignup || isForgot ? 'login' : 'signup')} className="font-medium text-brand hover:text-brand-hover">
-                {isSignup || isForgot ? 'Entrar' : 'Criar conta'}
-              </button>
+              {isForgot ? (
+                <>Lembrou a senha?{' '}<button type="button" onClick={() => goTo('login')} className="font-medium text-brand hover:text-brand-hover">Entrar</button></>
+              ) : 'O acesso ao Projeta é feito por convite.'}
             </p>
           )}
         </section>
