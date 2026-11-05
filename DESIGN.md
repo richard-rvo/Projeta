@@ -1,6 +1,6 @@
 # Design System — "Precision Calm"
 
-> **Versão**: 3.0 · agosto de 2026
+> **Versão**: 3.1 · novembro de 2026
 > Histórico do redesign: [`docs/REDESIGN.md`](docs/REDESIGN.md)
 
 **Apple** (calma, hierarquia, material) × **MS Project** (densidade, rigor de cronograma) × **ClickUp** (velocidade, comando, views).
@@ -72,7 +72,9 @@ Cada um tem variante `-soft` para fundo de pílula. O token de fim de semana é 
 
 ### Marca
 
-`--brand` (#B90973) e `--brand-gradient`. Permitidos em **quatro** lugares e mais nenhum:
+A marca é o **laranja `#FF6A00`** (`--brand`; `#FF8A3D` no tema escuro) com o
+**grafite `#1A1A1A`** do logo. Tokens: `--brand`, `--brand-hover`, `--brand-soft`
+e `--brand-gradient`. Permitidos em **quatro** lugares e mais nenhum:
 
 1. Botão primário
 2. Anel de foco e célula ativa
@@ -81,14 +83,21 @@ Cada um tem variante `-soft` para fundo de pílula. O token de fim de semana é 
 
 ### Raio, tipografia, movimento
 
-- **Raio**: 6 (controles) · 10 (cards) · 14 (sheets) · pill. Raio grande destrói densidade.
-- **Tipografia**: SF-first (`-apple-system`), Inter de fallback. Escala: `micro` 11 · `small` 12 · `body` 13 · `read` 15 · `title` 19 · `display` 28. `tabular-nums` em toda data e número.
+- **Raio**: 9 (`--radius-control`) · 12 (`--radius-card`) · 16 (`--radius-sheet`) · pill. Raio grande destrói densidade.
+- **Tipografia**: SF-first (`-apple-system`), Inter de fallback. A Inter é **auto-hospedada** (`@fontsource-variable/inter`, importada em `main.jsx`): não há Google Fonts nem CDN de fontes, e a CSP só permite `font-src 'self'`. Escala: `micro` 11 · `small` 12 · `body` 13 · `read` 15 · `title` 19 · `display` 28. `tabular-nums` em toda data e número.
 - **Movimento**: 3 durações (120 / 200 / 320ms) e 2 easings. `prefers-reduced-motion` respeitado.
 - **Elevação**: 4 níveis com tinta neutra fria, nunca preto puro.
 
 ### Densidade
 
 `[data-density]` no `<html>` controla `--gantt-row-h` (40px / 30px), paddings e alturas de controle.
+
+### Decisões aprovadas (04/11/2026)
+
+- **Archivo** para títulos e números de KPI, com Inter no corpo. Aprovada, mas
+  **ainda não implementada**: entra na Fase 3 (hoje o produto usa só Inter).
+- **Sinal do desvio**: `Realizado − Planejado`, em pontos percentuais. Um desvio
+  de −3 p.p. significa três pontos atrás do planejado.
 
 ---
 

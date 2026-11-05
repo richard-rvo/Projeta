@@ -6,6 +6,17 @@
 -- No schema atual não existe um admin global: o nível administrativo é o
 -- proprietário (owner) de um workspace. Este script não altera senha,
 -- e-mail ou qualquer credencial em auth.users.
+--
+-- Notas do modelo atual:
+--   * O workspace criado aqui é o pessoal (is_personal = true); só pode existir
+--     um por dono. O membership owner vem do trigger on_workspace_created do
+--     schema base: este script não insere em workspace_members.
+--   * Projetos têm owner_id (NOT NULL). No app ele vem de auth.uid(); no SQL
+--     Editor auth.uid() é nulo, então qualquer INSERT manual em public.projects
+--     deve passar owner_id explicitamente. O trigger on_project_created grava o
+--     vínculo owner em project_members.
+--   * Mudanças de schema ou de permissão entram como migração em
+--     supabase/migrations/, nunca como correção avulsa no SQL Editor.
 
 do $$
 declare
@@ -33,18 +44,18 @@ begin
     set display_name = excluded.display_name,
         updated_at = now();
 
-  -- Reutiliza um workspace que o usuário já possui. Caso ainda não exista,
-  -- cria um workspace próprio; o trigger do schema cria o membership owner.
+  -- Reutiliza o workspace pessoal do usuário. Caso ainda não exista,
+  -- cria um; o trigger do schema cria o membership owner.
   select id
     into v_workspace_id
     from public.workspaces
    where owner_id = v_user_id
-   order by created_at asc
+     and is_personal
    limit 1;
 
   if v_workspace_id is null then
-    insert into public.workspaces (name, owner_id)
-    values (coalesce(nullif(trim(v_workspace_name), ''), 'Projeta'), v_user_id)
+    insert into public.workspaces (name, owner_id, is_personal)
+    values (coalesce(nullif(trim(v_workspace_name), ''), 'Projeta'), v_user_id, true)
     returning id into v_workspace_id;
   else
     update public.workspaces
@@ -52,11 +63,6 @@ begin
            updated_at = now()
      where id = v_workspace_id;
   end if;
-
-  insert into public.workspace_members (workspace_id, user_id, role)
-  values (v_workspace_id, v_user_id, 'owner')
-  on conflict (workspace_id, user_id) do update
-    set role = 'owner';
 
   raise notice 'Usuário % configurado como owner do workspace % (%).',
     v_email, v_workspace_name, v_workspace_id;
@@ -72,6 +78,7 @@ select
   w.id as workspace_id,
   w.name as workspace_name,
   w.owner_id,
+  w.is_personal,
   wm.role
 from auth.users u
 join public.workspace_members wm on wm.user_id = u.id
