@@ -3,21 +3,59 @@ import { DEFAULT_CALENDAR, DEFAULT_CALENDAR_ID, calendarsOf } from './calendar';
 import { readDependencies } from './dependencies';
 import { generateId } from './ids';
 
+/** Erro cuja mensagem já está pronta para a interface: friendlyDbError a devolve como está. */
+export function friendlyError(message, extra) {
+  return Object.assign(new Error(message), extra, { friendly: true });
+}
+
 export function requireClient() {
-  if (!supabase) throw new Error('Supabase não está configurado. Confira SUPABASE_URL e SUPABASE_ANON_KEY.');
+  if (!supabase) throw friendlyError('Supabase não está configurado. Confira SUPABASE_URL e SUPABASE_ANON_KEY.');
   return supabase;
 }
 
+const NETWORK_PATTERN = /Failed to fetch|Load failed|NetworkError/i;
+const SQLSTATE_PATTERN = /^[0-9A-Z]{5}$/;
+
+function isNetworkError(error, message) {
+  return error?.status === 0 || error?.name === 'TypeError' || NETWORK_PATTERN.test(message);
+}
+
+/* Corpo HTML (WAF, proxy) ou 403 sem código do Postgres: quem recusou foi a borda, não o banco. */
+function isServerRefusal(error, message) {
+  const trimmed = message.trim();
+  if (trimmed.startsWith('<') || /<html/i.test(trimmed)) return true;
+  return error?.status === 403 && !SQLSTATE_PATTERN.test(String(error?.code || ''));
+}
+
+/** Mensagem em português para qualquer erro de dados. Nunca devolve o texto cru do servidor. */
 export function friendlyDbError(error) {
-  const text = `${error?.code || ''} ${error?.message || ''}`;
-  if (text.includes('plan_limit_projects')) return 'Você atingiu o limite de projetos do seu plano.';
+  if (error?.friendly) return error.message;
+  const message = String(error?.message || '');
+  if (`${error?.code || ''} ${message}`.includes('plan_limit_projects')) return 'Você atingiu o limite de projetos do seu plano.';
   if (error?.code === '42501') return 'Você não tem permissão para esta ação.';
   if (error?.code === '23514') return 'Algum campo está fora do formato ou do tamanho permitido.';
-  return error?.message || 'Não foi possível gravar no workspace Supabase.';
+  if (error?.code === '23503') return 'Um item vinculado não existe mais. Recarregue a página.';
+  if (isNetworkError(error, message)) return 'Sem conexão. Verifique a internet e tente de novo.';
+  if (isServerRefusal(error, message)) return 'O servidor recusou a solicitação. Tente de novo com outro texto.';
+  console.error('Erro de dados não mapeado:', error);
+  return 'Não foi possível concluir a operação. Tente de novo.';
+}
+
+/** Erro pronto para a interface: mensagem traduzida, com o código e o erro original preservados. */
+export function toFriendlyError(error) {
+  if (error?.friendly) return error;
+  return friendlyError(friendlyDbError(error), { code: error?.code, cause: error });
 }
 
 export function throwIfError(result) {
-  if (result.error) throw result.error;
+  const { error } = result;
+  if (error) {
+    // O status HTTP vem na resposta, não no erro; friendlyDbError precisa dele para reconhecer 403 e rede.
+    if (typeof error === 'object' && error.status === undefined && typeof result.status === 'number') {
+      error.status = result.status;
+    }
+    throw error;
+  }
   return result.data;
 }
 
@@ -227,7 +265,7 @@ export async function verifyWorkspaceData(workspaceId, expected) {
   if (normalize(actual.projects) !== normalize(expected.projects)
     || normalize(actual.tasks) !== normalize(expected.tasks)
     || normalize(actual.anomalies) !== normalize(expected.anomalies)) {
-    throw new Error('Os dados em tela e o Supabase não conferem.');
+    throw friendlyError('Os dados em tela e o Supabase não conferem.');
   }
   return true;
 }

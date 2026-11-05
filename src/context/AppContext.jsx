@@ -5,7 +5,7 @@ import {
   deleteProject as dbDeleteProject, saveTask as dbSaveTask,
   deleteTask as dbDeleteTask, saveAnomaly as dbSaveAnomaly,
   deleteAnomaly as dbDeleteAnomaly, updateWorkspace as dbUpdateWorkspace,
-  verifyWorkspaceData, friendlyDbError,
+  verifyWorkspaceData, friendlyDbError, toFriendlyError,
 } from '../utils/supabaseRepository';
 
 const authRedirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
@@ -403,11 +403,13 @@ export function AppProvider({ children }) {
       });
       return result;
     } catch (error) {
+      // Diálogos mostram error.message: a tradução precisa chegar até eles, não só ao state.save.
+      const friendly = toFriendlyError(error);
       dispatch({
         type: ACTIONS.SAVE_FAILED,
-        payload: { error: saveErrorMessage(error) },
+        payload: { error: friendly.message },
       });
-      throw error;
+      throw friendly;
     }
   }, []);
 
@@ -433,7 +435,7 @@ export function AppProvider({ children }) {
       return true;
     } catch (error) {
       reportLocalSaveError(error);
-      throw error;
+      throw toFriendlyError(error);
     }
   }, [confirmLocalSave, reportLocalSaveError, state.anomalies, state.projects, state.tasks]);
 
