@@ -41,6 +41,10 @@ describe('reducer: convite e acesso revogado', () => {
     const s = reducer(base, { type: ACTIONS.AUTH_ERROR, payload: 'x', code: 'access_revoked' })
     expect(s.auth).toMatchObject({ status: 'error', errorCode: 'access_revoked' })
   })
+  it('AUTH_ERROR mantém mustSetPassword, exceto em access_revoked', () => {
+    expect(reducer(base, { type: ACTIONS.AUTH_ERROR, payload: 'x' }).auth.mustSetPassword).toBe(true)
+    expect(reducer(base, { type: ACTIONS.AUTH_ERROR, payload: 'x', code: 'access_revoked' }).auth.mustSetPassword).toBe(false)
+  })
   it('isInviteHash reconhece type=invite', () => {
     expect(isInviteHash('#access_token=a&type=invite')).toBe(true)
     expect(isInviteHash('#type=recovery')).toBe(false)

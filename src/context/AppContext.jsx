@@ -163,7 +163,7 @@ export function reducer(state, action) {
     case ACTIONS.AUTH_ERROR:
       return {
         ...state,
-        auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false, mustSetPassword: false, errorCode: action.code || null },
+        auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false, mustSetPassword: action.code === 'access_revoked' ? false : state.auth.mustSetPassword, errorCode: action.code || null },
         projects: [], tasks: [], anomalies: [],
       };
     case ACTIONS.AUTH_RETRY:
