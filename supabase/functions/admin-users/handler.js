@@ -262,8 +262,8 @@ export function createHandler({ createUserClient, adminClient, siteUrl, allowedO
     if (typeof userId !== 'string' || !UUID_RE.test(userId)) throw new HttpError(400, 'invalid_id', MSG.badId);
     const target = (await listUsers(userClient)).find((u) => u.user_id === userId);
     if (!target) throw new HttpError(404, 'user_not_found', MSG.userNotFound);
-    // Nunca concluiu o primeiro acesso: restaurar não faz sentido, só um convite novo.
-    if (target.status === 'invited' || !target.last_sign_in_at) {
+    // Nunca concluiu o primeiro acesso (nenhum convite com accepted_at): só um convite novo.
+    if (!(await hasAcceptedInvite(userId))) {
       throw new HttpError(409, 'first_access_pending', MSG.firstAccessPending);
     }
     // Desbanir primeiro: se falhar, o usuário continua revogado (lado seguro).

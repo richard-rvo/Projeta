@@ -363,8 +363,27 @@ describe('admin-users: revoke_user / restore_user', () => {
     expect(e.message).toBe('Esta pessoa ainda não concluiu o primeiro acesso. Envie um novo convite.');
     expect(bans).toHaveLength(0);
   });
+  const accepted = (userId, o) => ({ id: '44444444-4444-4444-8444-444444444444', email: 'ana@x.com', status: 'accepted', sent_count: 1, note: '', accepted_user_id: userId, accepted_at: '2026-01-01T00:00:00Z', expires_at: '2020-01-01T00:00:00Z', ...o });
+  it('restore decide por accepted_at, não por last_sign_in_at: entrou sem convite aceito -> 409', async () => {
+    const users = [{ user_id: USER, email: 'ana@x.com', is_admin: false, status: 'revoked', last_sign_in_at: 'x' }];
+    const pend = accepted(USER, { status: 'revoked', accepted_at: null });
+    const { call, bans } = setup({ users, tables: { platform_invites: [pend] } });
+    const r = await call({ action: 'restore_user', userId: USER });
+    expect(r.status).toBe(409);
+    const e = (await json(r)).error;
+    expect(e.code).toBe('first_access_pending');
+    expect(e.message).toBe('Esta pessoa ainda não concluiu o primeiro acesso. Envie um novo convite.');
+    expect(bans).toHaveLength(0);
+  });
+  it('restore com convite aceito (mesmo sem last_sign_in_at e com o convite depois revogado) restaura', async () => {
+    const users = [{ user_id: USER, email: 'ana@x.com', is_admin: false, status: 'revoked', last_sign_in_at: null }];
+    const { call, t, bans } = setup({ users, tables: { platform_invites: [accepted(USER, { status: 'revoked' })], user_access: [{ user_id: USER, status: 'revoked', revoked_at: 'x', revoked_by: ADMIN }] } });
+    expect((await call({ action: 'restore_user', userId: USER })).status).toBe(200);
+    expect(t.user_access[0]).toMatchObject({ status: 'active', revoked_at: null });
+    expect(bans).toEqual([{ id: USER, attrs: { ban_duration: 'none' } }]);
+  });
   it('restaura: active + ban_duration none', async () => {
-    const { call, t, bans } = setup({ tables: { user_access: [{ user_id: USER, status: 'revoked', revoked_at: 'x', revoked_by: ADMIN }] } });
+    const { call, t, bans } = setup({ tables: { platform_invites: [accepted(USER)], user_access: [{ user_id: USER, status: 'revoked', revoked_at: 'x', revoked_by: ADMIN }] } });
     expect((await call({ action: 'restore_user', userId: USER })).status).toBe(200);
     expect(t.user_access[0]).toMatchObject({ status: 'active', revoked_at: null, revoked_by: null });
     expect(bans).toEqual([{ id: USER, attrs: { ban_duration: 'none' } }]);
