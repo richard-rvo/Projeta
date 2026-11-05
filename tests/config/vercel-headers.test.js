@@ -30,6 +30,12 @@ describe('vercel.json security headers', () => {
   });
 });
 
+describe('vercel.json SPA rewrite', () => {
+  it('does not rewrite /assets to index.html (a missing chunk must 404, not return HTML)', () => {
+    expect(vercel.rewrites).toEqual([{ source: '/((?!assets/).*)', destination: '/index.html' }]);
+  });
+});
+
 describe('index.html', () => {
   it('does not load fonts from Google', () => {
     const html = readFileSync(resolve(root, 'index.html'), 'utf8');
