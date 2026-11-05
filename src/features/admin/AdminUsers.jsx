@@ -4,14 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { adminAction, listAdminUsers } from './adminRepository';
-import { formatDateTime, formatMB } from './format';
+import { adminAction, listAdminUsers, listInvites } from './adminRepository';
+import { USER_STATUS, formatDateTime, formatMB } from './format';
 import { friendlyDbError } from '../../utils/supabaseRepository';
 
 export default function AdminUsers() {
   const { state } = useContext(AppContext);
   const selfId = state.auth?.user?.id;
   const [users, setUsers] = useState(null);
+  const [pendingInvites, setPendingInvites] = useState({}); // email -> id
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [pending, setPending] = useState(null); // { user, action }
@@ -24,7 +25,29 @@ export default function AdminUsers() {
       setUsers((prev) => prev || []);
     }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  const loadInvites = useCallback(async () => {
+    try {
+      const rows = await listInvites();
+      const map = {};
+      for (const i of rows) if (i.display_status === 'pending' || i.display_status === 'expired') map[i.email] = i.id;
+      setPendingInvites(map);
+    } catch { setPendingInvites({}); }
+  }, []);
+  useEffect(() => { load(); loadInvites(); }, [load, loadInvites]);
+
+  const resend = async (user, inviteId) => {
+    setBusy(true);
+    setFeedback(null);
+    try {
+      await adminAction('resend', { inviteId });
+      setFeedback({ type: 'success', message: `Convite reenviado para ${user.email}.` });
+      await loadInvites();
+    } catch (e) {
+      setFeedback({ type: 'error', message: friendlyDbError(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const confirm = async () => {
     const { user, action } = pending;
@@ -52,7 +75,7 @@ export default function AdminUsers() {
           {feedback.message}
         </p>
       )}
-      <Table>
+      <Table aria-label="Usuários">
         <TableHeader>
           <TableRow>
             <TableHead>Nome</TableHead>
@@ -74,13 +97,16 @@ export default function AdminUsers() {
           {users.map((u) => {
             const isSelf = u.user_id === selfId;
             const locked = isSelf || u.is_admin;
-            const active = u.status === 'active';
+            const revoked = u.status === 'revoked';
+            const active = !revoked;
+            const st = USER_STATUS[u.status] || USER_STATUS.active;
+            const inviteId = u.status === 'invited' ? pendingInvites[u.email] : null;
             return (
               <TableRow key={u.user_id}>
                 <TableCell className="text-text-1">{u.display_name || '—'}</TableCell>
                 <TableCell>{u.email}</TableCell>
                 <TableCell>
-                  <Badge variant={active ? 'done' : 'late'}>{active ? 'Ativo' : 'Revogado'}</Badge>
+                  <Badge variant={st.variant}>{st.label}</Badge>
                 </TableCell>
                 <TableCell>{u.is_admin ? 'Sim' : 'Não'}</TableCell>
                 <TableCell className="tabular-nums">{formatDateTime(u.created_at)}</TableCell>
@@ -92,6 +118,14 @@ export default function AdminUsers() {
                 <TableCell className="tabular-nums">{formatDateTime(u.last_activity_at)}</TableCell>
                 <TableCell className="tabular-nums">{formatMB(u.photos_bytes)}</TableCell>
                 <TableCell>
+                  <div className="flex justify-end gap-1">
+                  {inviteId && (
+                    <Button type="button" size="sm" variant="ghost" disabled={busy}
+                      aria-label={`Reenviar convite para ${u.email}`}
+                      onClick={() => resend(u, inviteId)}>
+                      Reenviar convite
+                    </Button>
+                  )}
                   <Button
                     type="button" size="sm"
                     variant={active ? 'destructiveGhost' : 'ghost'}
@@ -102,6 +136,7 @@ export default function AdminUsers() {
                   >
                     {active ? 'Revogar' : 'Restaurar'}
                   </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             );

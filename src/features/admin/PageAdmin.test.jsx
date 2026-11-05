@@ -27,7 +27,7 @@ const setInput = (el, value) => run(() => {
 })
 
 const OVERVIEW = {
-  users_total: 5, users_active: 4, users_revoked: 1, invites_pending: 3, invites_expired: 1, invites_accepted: 4,
+  users_total: 5, users_active: 4, users_invited: 2, users_revoked: 1, invites_pending: 3, invites_expired: 1, invites_accepted: 4,
   invites_revoked: 0, acceptance_rate: 0.44, active_7d: 2, active_30d: 3, projects: 17, tasks: 230, anomalies: 6, minutes: 9, actions_open: 12,
 }
 const user = (id, extra) => ({
@@ -71,7 +71,7 @@ describe('visão geral', () => {
     repo.listAdminUsers.mockResolvedValue([1, 2, 3, 4, 5, 6].map((n) => user(`u${n}`, { last_activity_at: `2026-11-0${n}T15:30:00Z` })))
     await mount(<PageAdmin />)
     const kpis = document.querySelector('section[aria-label="Indicadores"]').textContent
-    for (const t of ['Usuários ativos4', 'Convites pendentes3', 'Taxa de aceitação44%', 'Ativos 7 dias2', 'Ativos 30 dias3', 'Projetos17', 'Tarefas230', 'Atas9', 'Ações abertas12']) {
+    for (const t of ['Usuários ativos4', 'Aguardando primeiro acesso2', 'Convites pendentes3', 'Taxa de aceitação44%', 'Ativos 7 dias2', 'Ativos 30 dias3', 'Projetos17', 'Tarefas230', 'Atas9', 'Ações abertas12']) {
       expect(kpis).toContain(t)
     }
     const rows = document.querySelectorAll('ol li')
@@ -155,6 +155,39 @@ describe('usuários', () => {
     await click(document.querySelector('button[aria-label="Restaurar acesso de off@x.com"]'))
     await click(byText('[role="dialog"] button', 'Restaurar acesso'))
     expect(repo.adminAction).toHaveBeenCalledWith('restore_user', { userId: 'off' })
+  })
+})
+
+describe('contrato final', () => {
+  it('rotula Convidado, oferece Reenviar convite só com convite pendente e Revogar para convidado', async () => {
+    repo.listAdminUsers.mockResolvedValue([
+      user('inv', { status: 'invited' }), user('inv2', { status: 'invited' }), user('off', { status: 'revoked' }),
+    ])
+    repo.listInvites.mockResolvedValue([invite('inv')])
+    await mount(<PageAdmin />); await click(byText('button', 'Usuários'))
+    const rows = [...document.querySelectorAll('tbody tr')]
+    expect(rows.map((r) => r.children[2].textContent)).toEqual(['Convidado', 'Convidado', 'Revogado'])
+    expect(document.querySelector('button[aria-label="Revogar acesso de inv@x.com"]').disabled).toBe(false)
+    expect(document.querySelector('button[aria-label="Reenviar convite para inv@x.com"]')).toBeTruthy()
+    expect(document.querySelector('button[aria-label="Reenviar convite para inv2@x.com"]')).toBeNull()
+    await click(document.querySelector('button[aria-label="Reenviar convite para inv@x.com"]'))
+    expect(repo.adminAction).toHaveBeenCalledWith('resend', { inviteId: 'inv' })
+    expect(document.querySelector('table').getAttribute('aria-label')).toBe('Usuários')
+  })
+
+  it('mostra a dica quando delivered === false', async () => {
+    repo.adminAction.mockResolvedValue({ delivered: false, message: 'Esta pessoa já tem conta; avise por fora.' })
+    await mount(<PageAdmin />); await click(byText('button', 'Convites'))
+    await setInput(document.querySelector('input[type="email"]'), 'a@b.com')
+    await click(byText('button', 'Enviar convite'))
+    expect(document.querySelector('[role="status"]').textContent).toBe('Esta pessoa já tem conta; avise por fora.')
+  })
+
+  it('KPIs e top 5 degradam de forma independente', async () => {
+    repo.listAdminUsers.mockRejectedValue(new Error('x'))
+    await mount(<PageAdmin />)
+    expect(document.querySelector('section[aria-label="Indicadores"]')).toBeTruthy()
+    expect(document.querySelector('[role="alert"]')).toBeTruthy()
   })
 })
 

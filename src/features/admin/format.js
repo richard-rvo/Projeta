@@ -18,6 +18,12 @@ export function formatMB(bytes) {
   return `${((Number(bytes) || 0) / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;
 }
 
+export const USER_STATUS = {
+  active: { label: 'Ativo', variant: 'done' },
+  invited: { label: 'Convidado', variant: 'atRisk' },
+  revoked: { label: 'Revogado', variant: 'late' },
+};
+
 export const INVITE_STATUS = {
   pending: { label: 'Pendente', variant: 'atRisk' },
   expired: { label: 'Expirado', variant: 'neutral' },

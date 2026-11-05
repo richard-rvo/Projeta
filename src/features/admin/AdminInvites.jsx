@@ -33,7 +33,7 @@ export default function AdminInvites() {
     setFeedback(null);
     try {
       await fn();
-      setFeedback({ type: 'success', message: successMessage });
+      setFeedback({ type: 'success', message: typeof successMessage === 'function' ? successMessage() : successMessage });
       await load();
       return true;
     } catch (e) {
@@ -51,7 +51,11 @@ export default function AdminInvites() {
       setFeedback({ type: 'error', message: 'Informe um e-mail válido.' });
       return;
     }
-    const ok = await run(() => adminAction('invite', { email: normalized, note: note.trim() }), `Convite enviado para ${normalized}.`);
+    let hint = null;
+    const ok = await run(async () => {
+      const data = await adminAction('invite', { email: normalized, note: note.trim() });
+      if (data?.delivered === false) hint = data.message || data.hint || null;
+    }, () => hint || `Convite enviado para ${normalized}.`);
     if (ok) { setEmail(''); setNote(''); }
   };
 
@@ -83,7 +87,7 @@ export default function AdminInvites() {
       ) : invites.length === 0 ? (
         <p className="text-small text-text-2">Nenhum convite enviado ainda.</p>
       ) : (
-        <Table>
+        <Table aria-label="Convites">
           <TableHeader>
             <TableRow>
               <TableHead>E-mail</TableHead>
