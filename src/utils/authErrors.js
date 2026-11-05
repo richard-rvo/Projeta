@@ -19,6 +19,9 @@ export function isTransientAuthError(error) {
   return isNetwork(error) || isRateLimit(error) || (typeof error.status === 'number' && error.status >= 500);
 }
 
+/** Mesma frase da tela de acesso revogado (supabaseRepository a reexporta). */
+export const ACCESS_REVOKED_MESSAGE = 'Seu acesso ao Projeta foi revogado. Fale com o administrador.';
+
 const MESSAGES = {
   invalid_credentials: 'E-mail ou senha incorretos.',
   email_not_confirmed: 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.',
@@ -28,6 +31,7 @@ const MESSAGES = {
   signup_disabled: 'O acesso ao Projeta é feito por convite.',
   same_password: 'A nova senha precisa ser diferente da atual.',
   weak_password: 'Senha fraca: use pelo menos 10 caracteres, com letras e números.',
+  user_banned: ACCESS_REVOKED_MESSAGE,
 };
 
 export function authErrorMessage(error) {
