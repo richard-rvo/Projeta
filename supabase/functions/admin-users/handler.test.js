@@ -179,7 +179,7 @@ describe('admin-users: invite', () => {
     expect(r.status).toBe(409);
     const e = (await json(r)).error;
     expect(e.code).toBe('user_exists');
-    expect(e.message).toBe('Este e-mail já tem uma conta. Use "Restaurar" se o acesso foi revogado.');
+    expect(e.message).toBe('Este e-mail já tem acesso ativo ao Projeta.');
     expect(invites).toHaveLength(0);
     expect(t.platform_invites).toHaveLength(0);
   });

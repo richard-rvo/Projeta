@@ -13,7 +13,7 @@ const MSG = {
   badEmail: 'Informe um e-mail válido.',
   badNote: 'A observação deve ter no máximo 500 caracteres.',
   badId: 'Identificador inválido.',
-  userExists: 'Este e-mail já tem uma conta. Use "Restaurar" se o acesso foi revogado.',
+  userExists: 'Este e-mail já tem acesso ativo ao Projeta.',
   existingAccount: 'Convite registrado. Como a pessoa já tem conta, peça para usar "Esqueci minha senha".',
   firstAccessPending: 'Esta pessoa ainda não concluiu o primeiro acesso. Envie um novo convite.',
   sendFailed: 'Não foi possível enviar o e-mail do convite. Tente novamente em instantes.',
