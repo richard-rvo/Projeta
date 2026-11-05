@@ -62,3 +62,23 @@ describe('AppProvider: erros de gravação', () => {
     expect(ctx.state.save.error).toBe(thrown.message)
   })
 })
+
+describe('AppProvider: falha no primeiro carregamento', () => {
+  it('mostra o erro traduzido e Tentar de novo recarrega o workspace da sessão atual', async () => {
+    repo.ensureWorkspace.mockRejectedValueOnce({ message: 'TypeError: Failed to fetch', code: '' })
+    await mount()
+    expect(ctx.state.auth).toMatchObject({ status: 'error', error: 'Sem conexão. Verifique a internet e tente de novo.' })
+    await run(() => ctx.retryLoad())
+    expect(repo.ensureWorkspace).toHaveBeenCalledTimes(2)
+    expect(repo.ensureWorkspace).toHaveBeenLastCalledWith({ id: 'u1' })
+    expect(ctx.state.auth).toMatchObject({ status: 'ready', user: { id: 'u1' }, workspace: { id: 'w1' }, error: null })
+  })
+
+  it('Tentar de novo com falha ao ler a sessão continua no erro, sem cair na página pública', async () => {
+    repo.ensureWorkspace.mockRejectedValueOnce({ message: 'TypeError: Failed to fetch', code: '' })
+    await mount()
+    auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: { name: 'AuthRetryableFetchError', status: 0, message: 'Failed to fetch' } })
+    await run(() => ctx.retryLoad())
+    expect(ctx.state.auth).toMatchObject({ status: 'error', error: 'Sem conexão. Verifique a internet e tente de novo.' })
+  })
+})

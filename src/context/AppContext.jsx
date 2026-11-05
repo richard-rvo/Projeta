@@ -61,6 +61,7 @@ export const ACTIONS = {
   AUTH_READY: 'AUTH_READY',
   AUTH_SET_RECOVERY: 'AUTH_SET_RECOVERY',
   AUTH_ERROR: 'AUTH_ERROR',
+  AUTH_RETRY: 'AUTH_RETRY',
   AUTH_SIGNED_OUT: 'AUTH_SIGNED_OUT',
   AUTH_WORKSPACE_UPDATED: 'AUTH_WORKSPACE_UPDATED',
   ADD_ANOMALY: 'ADD_ANOMALY',
@@ -153,6 +154,8 @@ export function reducer(state, action) {
         auth: { status: 'error', user: null, workspace: null, error: action.payload, recovery: false },
         projects: [], tasks: [], anomalies: [],
       };
+    case ACTIONS.AUTH_RETRY:
+      return { ...state, auth: { ...state.auth, status: 'loading', error: null } };
     case ACTIONS.AUTH_SIGNED_OUT:
       return {
         ...state,
@@ -324,6 +327,7 @@ export function AppProvider({ children }) {
   const projectsRef = useRef(state.projects);
   const historyRef = useRef(state.history);
   const workspaceRef = useRef(state.auth.workspace);
+  const loadUserRef = useRef(null);
   useEffect(() => { projectsRef.current = state.projects; }, [state.projects]);
   useEffect(() => { tasksRef.current = state.tasks; }, [state.tasks]);
   useEffect(() => { historyRef.current = state.history; }, [state.history]);
@@ -352,11 +356,12 @@ export function AppProvider({ children }) {
         workspaceRef.current = workspace;
         dispatch({ type: ACTIONS.AUTH_READY, payload: { user, workspace, data } });
       } catch (error) {
-        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: error?.message || 'Falha ao carregar o workspace.' });
+        if (!cancelled) dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
       } finally {
         if (loadingUserId === user.id) loadingUserId = null;
       }
     };
+    loadUserRef.current = loadUser;
 
     supabase.auth.getSession().then(({ data: { session } }) => loadUser(session?.user || null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -365,8 +370,26 @@ export function AppProvider({ children }) {
     });
     return () => {
       cancelled = true;
+      loadUserRef.current = null;
       subscription.unsubscribe();
     };
+  }, []);
+
+  /* Tela de erro do carregamento: refaz a carga para o usuário da sessão atual. */
+  const retryLoad = useCallback(async () => {
+    if (!supabase || !loadUserRef.current) return;
+    dispatch({ type: ACTIONS.AUTH_RETRY });
+    let session;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      session = data?.session;
+    } catch (error) {
+      // Sem conseguir ler a sessão (ex.: offline), continua no erro em vez de cair na página pública.
+      dispatch({ type: ACTIONS.AUTH_ERROR, payload: friendlyDbError(error) });
+      return;
+    }
+    await loadUserRef.current?.(session?.user || null);
   }, []);
 
   useEffect(() => {
@@ -717,6 +740,7 @@ export function AppProvider({ children }) {
     requestPasswordReset,
     updatePassword,
     signOut,
+    retryLoad,
     updateWorkspace,
   };
 
