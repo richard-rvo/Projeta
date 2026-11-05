@@ -2,7 +2,6 @@ import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { AppContext } from '../../context/AppContext'
 import { friendlyDbError } from '../../utils/supabaseRepository'
 import { createAutosaver } from './autosaver'
-import { flushAllMinuteSaves, registerMinuteAutosaver } from './pendingSaves'
 import { deleteMinute, listMinutes, loadMinute, newMinute, saveMinute } from './minutesRepository'
 
 export function useProjectMinutes(projectId) {
@@ -65,8 +64,9 @@ export function useProjectMinutes(projectId) {
     // Criado no efeito para sobreviver ao remount do StrictMode (dispose é definitivo).
     const autosaver = makeAutosaver()
     autosaverRef.current = autosaver
-    // No desmonte o registro grava o pendente; se falhar, segue tentando em segundo plano.
-    return registerMinuteAutosaver(autosaver)
+    return () => {
+      autosaver.flush().finally(() => autosaver.dispose())
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -97,8 +97,6 @@ export function useProjectMinutes(projectId) {
     async (id) => {
       if (activeRef.current?.id === id) return
       if (!(await flushOrFail())) return
-      // Texto órfão de uma visita anterior vai antes, senão a ata abriria na versão velha.
-      await flushAllMinuteSaves()
       try {
         const minute = await loadMinute(id)
         activeRef.current = minute
@@ -153,8 +151,6 @@ export function useProjectMinutes(projectId) {
           activeRef.current = null
           setActiveMinute(null)
         }
-        // Um save órfão desta ata gravado depois do delete a ressuscitaria.
-        await flushAllMinuteSaves()
         await deleteMinute(id)
         setError('')
         refreshList()

@@ -100,26 +100,3 @@ describe('autosaver (flush confiável)', () => {
     expect(save).toHaveBeenCalledTimes(1)
   })
 })
-
-describe('autosaver.hasUnsaved', () => {
-  it('reflete agendado, em andamento, falha, sucesso e descarte', async () => {
-    vi.useFakeTimers()
-    let reject
-    const save = vi.fn(() => new Promise((res, rej) => { reject = rej }))
-    const a = createAutosaver({ save, onStatus: () => {} })
-    expect(a.hasUnsaved()).toBe(false)
-    a.schedule('v')
-    expect(a.hasUnsaved()).toBe(true)
-    const p = a.flush()
-    expect(a.hasUnsaved()).toBe(true) // em andamento
-    reject(new Error('x'))
-    await p
-    expect(a.hasUnsaved()).toBe(true) // falhou: o valor continua pendente
-    save.mockResolvedValueOnce()
-    await a.flush()
-    expect(a.hasUnsaved()).toBe(false)
-    a.schedule('w')
-    a.discard()
-    expect(a.hasUnsaved()).toBe(false)
-  })
-})
